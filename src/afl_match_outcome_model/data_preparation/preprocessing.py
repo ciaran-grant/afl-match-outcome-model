@@ -85,4 +85,5 @@ def rolling_averages(group, cols, new_cols, window = 3):
     group = group.sort_values("Date")
     rolling_stats = group[cols].rolling(window, closed='left').mean()
     group[new_cols] = rolling_stats
+    group = group.dropna(subset = new_cols)
     return group
