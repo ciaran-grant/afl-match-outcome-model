@@ -85,5 +85,14 @@ def rolling_averages(group, cols, new_cols, window = 3):
     group = group.sort_values("Date")
     rolling_stats = group[cols].rolling(window, closed='left').mean()
     group[new_cols] = rolling_stats
-    group = group.dropna(subset = new_cols)
-    return group
+    return group[['Date', 'Team'] + new_cols]
+
+def format_date_columns(data):
+    
+    data["Day"] = pd.to_datetime(data["Date"]).dt.day
+    data["Month"] = pd.to_datetime(data["Date"]).dt.month
+    data["Year"] = pd.to_datetime(data["Date"]).dt.year
+    
+    date_cols = ['Day', 'Month', 'Year']
+
+    return data, date_cols

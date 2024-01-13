@@ -22,7 +22,7 @@ class SuperModel:
         self.params = params
     
 class SuperXGBClassifier(SuperModel):
-    def __init__(self, X_train, y_train, X_test, y_test, X_cal, y_cal, params):
+    def __init__(self, X_train, y_train, X_test, y_test, params, X_cal = None, y_cal = None):
         """ XGBoost Regression model that requries training data, test data and parameters.
 
         Args:
