@@ -47,65 +47,49 @@ class ModelEvaluator():
         
     def plot_distribution(self, compare=False):
         """Plot actual vs. predicted values"""
-                
+
         # Plot actual vs. predicted values
-        fig = sns.kdeplot(self.actual, shade=True, color="r")
-        fig = sns.kdeplot(self.expected, shade=True, color="b")
-        plt.legend(labels = ["Actual", "Expected"])
+        sns.kdeplot(self.actual, shade=True, color="r")
+        sns.kdeplot(self.expected, shade=True, color="b")
+        labels = ["Actual", "Expected"]
 
         if compare:
-            fig = sns.kdeplot(self.compare, shade=True, color="g")
-            plt.legend(labels = ["Actual", "Expected", "Comparison"])
-            
+            sns.kdeplot(self.compare, shade=True, color="g")
+            labels.append("Comparison")
+
+        plt.legend(labels=labels)
         plt.xlabel(self.actual_name)
         plt.show()
         
     def _get_feature_plot_data(self, feature):
-        """ Aggregates actual, expected and comparison columns by specified feature.
-            For numeric continuous features, creates bins.
+        """Aggregates actual, expected, and comparison columns by the specified feature. For numeric continuous features, creates bins.
 
-        Args:
-            feature (Str): Feature to plot.
+        **Args:**
+        - `feature` (str): Feature to plot.
 
-        Returns:
-            Dataframe: Aggregated data by feature.
+        **Returns:**
+        - `DataFrame`: Aggregated data by feature.
         """
-        if self.compare_name is not None:
-            plot_dict = {
-                'actual':self.actual,
-                'expected':self.expected,
-                'compare':self.compare,
-                'feature':self.data[feature]
-                }
-        else:
-            plot_dict = {
-                'actual':self.actual,
-                'expected':self.expected,
-                'feature':self.data[feature]
-                }
+        plot_dict = {
+            'actual': self.actual,
+            'expected': self.expected,
+            **({'compare': self.compare} if self.compare_name is not None else {}),
+            'feature': self.data[feature]
+        }
         plot_data = pd.DataFrame(plot_dict)
 
-        if is_numeric_dtype(plot_data['feature']) & (len(np.unique(plot_data['feature'])) > 50):
-            bins = 10
-            edges = np.linspace(plot_data['feature'].min(), plot_data['feature'].max(), bins+1).astype(float).round(5)
-            labels = [f'({edges[i]}, {edges[i+1]}]' for i in range(bins)]
-            plot_data['feature'] = pd.cut(plot_data['feature'], bins = bins, labels = labels)
-            
-        if self.compare_name is not None:
-            feature_plot_data = plot_data.groupby('feature').agg(
-                actual = ('actual', 'mean'),
-                expected = ('expected', 'mean'),
-                compare = ('compare', 'mean'),
-                exposure = ('actual', 'size'),
-                ).reset_index()
-        else:
-            feature_plot_data = plot_data.groupby('feature').agg(
-                actual = ('actual', 'mean'),
-                expected = ('expected', 'mean'),
-                exposure = ('actual', 'size'),
-                ).reset_index()
+        if is_numeric_dtype(plot_data['feature']) and len(np.unique(plot_data['feature'])) > 50:
+            plot_data['feature'] = pd.cut(plot_data['feature'], bins=10)
+
+        aggregation_dict = {
+            'actual': ('actual', 'mean'),
+            'expected': ('expected', 'mean'),
+            **({'compare': ('compare', 'mean')} if self.compare_name is not None else {}),
+            'exposure': ('actual', 'size')
+        }
         
-        return feature_plot_data
+        return plot_data.groupby('feature').agg(**aggregation_dict).reset_index()
+
     
     def plot_feature_ave(self, feature):
         """ Plots Actual v Expected (v Comparison) for feature.
@@ -196,59 +180,7 @@ class ModelEvaluator():
         fig.suptitle("Double Lift Chart", fontsize=20)
         fig.show()
 
-    
-class XGBModelEvaluator(ModelEvaluator):
-    """XGBoost specific model evaluation class.
-    """
-    def __init__(self, model, data, actual_name, expected_name, compare_name = None):
-        super().__init__(model, data, actual_name, expected_name, compare_name)
-    
-        self.feature_names = list(self.model.feature_names_in_)
-        self.shap_values = None
-    
-    def plot_feature_importance(self, max_num_features = 20, importance_type = "total_gain"):
-        """Plot feature importance for the model"""
-        xgb.plot_importance(self.model, max_num_features = max_num_features, importance_type = importance_type)
-         
-    def _get_shap_values(self, sample = 10000):
-        """Gets SHAP values for XGBoost model.
-        """
-        self.sample_data = self.data[self.feature_names].sample(sample)
-        explainer = shap.Explainer(self.model)
-        self.shap_values = explainer(self.sample_data)
-
-    def plot_shap_summary_plot(self, max_display=10, sample = 10000):
-        """Plot SHAP values for tree-based and other models"""
-        if not(self.shap_values):
-            self._get_shap_values(sample=sample)
-        shap.summary_plot(self.shap_values, self.sample_data, max_display = max_display)
-        
-    def get_ranked_feature_importance(self):
-        """ For XGBoost model, ranks features by average SHAP value.
-
-        Returns:
-            List: Ranked list of importance features.
-        """
-        
-        if not(self.shap_values):
-            self._get_shap_values()    
-        
-        vals= np.abs(self.shap_values.values).mean(0)
-        feature_importance = pd.DataFrame(list(zip(self.feature_names, vals)), columns=['col_name','feature_importance_vals'])
-        feature_importance.sort_values(by=['feature_importance_vals'], ascending=False,inplace=True)
-
-        return list(feature_importance['col_name'])
-        
-    def plot_pdp(self, feature_list, target=None):
-        """Plot partial dependence plot for a given feature"""
-        PartialDependenceDisplay.from_estimator(self.model, self.data[self.feature_names], feature_list, target=target)
-        
-    def plot_ice(self, feature_list):
-        """Plot individual conditional expectation (ICE) plot for a given feature"""
-        PartialDependenceDisplay.from_estimator(self.model, self.data[self.feature_names], feature_list, kind="both")
-
-    
-class XGBClassifierEvaluator(XGBModelEvaluator):
+class ClassifierEvaluator(ModelEvaluator):
     
     def __init__(self, model, data, actual_name, expected_name, compare_name=None, expected_label_name=None, compare_label_name=None):
         super().__init__(model, data, actual_name, expected_name, compare_name)
@@ -342,10 +274,10 @@ class XGBClassifierEvaluator(XGBModelEvaluator):
         """ Plot calibration curve for binary classifier """
         return CalibrationDisplay.from_predictions(self.actual, self.expected, n_bins=nbins)
         
-    
-    
-class XGBRegressorEvaluator(XGBModelEvaluator):
-
+class RegressorEvaluator(ModelEvaluator):
+    def __init__(self, model, data, actual_name, expected_name, compare_name=None):
+        super().__init__(model, data, actual_name, expected_name, compare_name)    
+            
     def get_mae(self, compare=False):
         """Return the mean absolute error for regression"""
         if compare:
@@ -366,4 +298,78 @@ class XGBRegressorEvaluator(XGBModelEvaluator):
             return r2_score(self.actual, self.compare)
         else:
             return r2_score(self.actual, self.expected)
+
     
+class XGBModelEvaluator(ModelEvaluator):
+    """XGBoost specific model evaluation class.
+    """
+    def __init__(self, model, data, actual_name, expected_name, compare_name = None):
+        super().__init__(model, data, actual_name, expected_name, compare_name)
+    
+        self.feature_names = list(self.model.feature_names_in_)
+        self.shap_values = None
+    
+    def plot_feature_importance(self, max_num_features = 20, importance_type = "total_gain"):
+        """Plot feature importance for the model"""
+        xgb.plot_importance(self.model, max_num_features = max_num_features, importance_type = importance_type)
+         
+    def _get_shap_values(self, sample = 10000):
+        """Gets SHAP values for XGBoost model.
+        """
+        self.sample_data = self.data[self.feature_names].sample(sample)
+        explainer = shap.Explainer(self.model)
+        self.shap_values = explainer(self.sample_data)
+
+    def plot_shap_summary_plot(self, max_display=10, sample = 10000):
+        """Plot SHAP values for tree-based and other models"""
+        if not(self.shap_values):
+            self._get_shap_values(sample=sample)
+        shap.summary_plot(self.shap_values, self.sample_data, max_display = max_display)
+        
+    def get_ranked_feature_importance(self):
+        """ For XGBoost model, ranks features by average SHAP value.
+
+        Returns:
+            List: Ranked list of importance features.
+        """
+        
+        if not(self.shap_values):
+            self._get_shap_values()    
+        
+        vals= np.abs(self.shap_values.values).mean(0)
+        feature_importance = pd.DataFrame(list(zip(self.feature_names, vals)), columns=['col_name','feature_importance_vals'])
+        feature_importance.sort_values(by=['feature_importance_vals'], ascending=False,inplace=True)
+
+        return list(feature_importance['col_name'])
+        
+    def plot_pdp(self, feature_list, target=None):
+        """Plot partial dependence plot for a given feature"""
+        PartialDependenceDisplay.from_estimator(self.model, self.data[self.feature_names], feature_list, target=target)
+        
+    def plot_ice(self, feature_list):
+        """Plot individual conditional expectation (ICE) plot for a given feature"""
+        PartialDependenceDisplay.from_estimator(self.model, self.data[self.feature_names], feature_list, kind="both")
+
+    
+class XGBClassifierEvaluator(XGBModelEvaluator, ClassifierEvaluator):
+    
+    def __init__(self, model, data, actual_name, expected_name, compare_name=None, expected_label_name=None, compare_label_name=None):
+        super().__init__(model, data, actual_name, expected_name, compare_name)
+        
+        self.expected_label_name: str = expected_label_name
+        self.compare_label_name: str = compare_label_name
+        if expected_label_name is not None:
+            self.expected_label = self.data[expected_label_name]
+        if compare_label_name is not None:
+            self.compare_label = self.data[compare_label_name]       
+    
+        
+    
+    
+class XGBRegressorEvaluator(XGBModelEvaluator, RegressorEvaluator):
+
+    def __init__(self, model, data, actual_name, expected_name, compare_name=None):
+        super().__init__(model, data, actual_name, expected_name, compare_name)
+    
+class LSTMClassifierEvaluator(ClassifierEvaluator):
+    pass

@@ -1,98 +1,53 @@
-import pandas as pd
 import numpy as np
 
-def convert_home_away_to_team_opp_data(data):
-    home_data = data.copy()
-    home_data = home_data.rename(columns={"Home_Team": "Team", "Away_Team": "Opponent"})
-    home_data["Home"] = 1
-    home_data["Result"] = np.where(home_data["Home Win"] == 1, 1, 0)
-
-    away_data = data.copy()
-    away_data = away_data.rename(columns={"Home_Team": "Opponent", "Away_Team": "Team"})
-    away_data["Home"] = 0
-    away_data["Result"] = np.where(away_data["Home Win"] == 1, 0, 1)
-    away_data["Margin"] = -1 * away_data["Margin"]
-
-    team_opponent_data = pd.concat([home_data, away_data], axis=0)
-    team_opponent_data = team_opponent_data.sort_values(
-        by=["Match_ID", "Date"]
-    ).reset_index(drop=True)
-
-    team_opponent_data = team_opponent_data.drop(
-        columns=["Home Win", "Attendance", "Weather_Type", "Round_ID", "Season"]
-    )
-
-    return team_opponent_data
-
-
-def create_score_columns(data):
-    data["Team_Score"] = np.where(
-        data["Home"] == 1,
-        data["Q4_Score"].apply(lambda x: x.split(" - ")[0].split(".")[-1]).astype(int),
-        data["Q4_Score"].apply(lambda x: x.split(" - ")[1].split(".")[-1]).astype(int),
-    )
-
-    data["Opp_Score"] = np.where(
-        data["Home"] == 0,
-        data["Q4_Score"].apply(lambda x: x.split(" - ")[0].split(".")[-1]).astype(int),
-        data["Q4_Score"].apply(lambda x: x.split(" - ")[1].split(".")[-1]).astype(int),
-    )
-
-    return data
-
-
-def create_goal_columns(data):
-    data["Team_Goals"] = np.where(
-        data["Home"] == 1,
-        data["Q4_Score"].apply(lambda x: x.split(" - ")[0].split(".")[0]).astype(int),
-        data["Q4_Score"].apply(lambda x: x.split(" - ")[1].split(".")[0]).astype(int),
-    )
-
-    data["Opp_Goals"] = np.where(
-        data["Home"] == 0,
-        data["Q4_Score"].apply(lambda x: x.split(" - ")[0].split(".")[0]).astype(int),
-        data["Q4_Score"].apply(lambda x: x.split(" - ")[1].split(".")[0]).astype(int),
-    )
-    return data
-
-
-def create_behind_columns(data):
-    data["Team_Behinds"] = np.where(
-        data["Home"] == 1,
-        data["Q4_Score"].apply(lambda x: x.split(" - ")[0].split(".")[1]).astype(int),
-        data["Q4_Score"].apply(lambda x: x.split(" - ")[1].split(".")[1]).astype(int),
-    )
-
-    data["Opp_Behinds"] = np.where(
-        data["Home"] == 0,
-        data["Q4_Score"].apply(lambda x: x.split(" - ")[0].split(".")[1]).astype(int),
-        data["Q4_Score"].apply(lambda x: x.split(" - ")[1].split(".")[1]).astype(int),
-    )
-
-    return data
-
-
-def split_scores(data):
-    data = create_score_columns(data)
-    data = create_goal_columns(data)
-    data = create_behind_columns(data)
-
-    data = data.drop(columns=["Q4_Score"])
-
-    return data
-
-def rolling_averages(group, cols, new_cols, window = 3):
-    group = group.sort_values("Date")
-    rolling_stats = group[cols].rolling(window, closed='left').mean()
-    group[new_cols] = rolling_stats
-    return group[['Date', 'Team'] + new_cols]
-
-def format_date_columns(data):
+def filter_data_AFL(data):
     
-    data["Day"] = pd.to_datetime(data["Date"]).dt.day
-    data["Month"] = pd.to_datetime(data["Date"]).dt.month
-    data["Year"] = pd.to_datetime(data["Date"]).dt.year
-    
-    date_cols = ['Day', 'Month', 'Year']
+    return data[data['Match_ID'].apply(lambda x: x.split("_")[0] == "AFL")]
 
-    return data, date_cols
+def merge_venue_info(matches, venue_info):
+    
+    matches = matches.merge(venue_info[['Venue', 'Latitude', 'Longitude']], how = 'left', on = 'Venue')
+    matches = matches.rename(columns={'Latitude':'Venue_Latitude', 'Longitude':"Venue_Longitude"})
+    
+    return matches
+
+def merge_home_away_venue(matches, home_info, away_info, venue_info):
+    
+    matches = matches.merge(home_info[['Home_Team', 'Home_Team_Venue']], how = 'left', on = 'Home_Team')
+    matches = matches.merge(away_info[['Away_Team', 'Away_Team_Venue']], how = 'left', on = 'Away_Team')
+    
+    home_venue_info = venue_info.copy().rename(columns={'Venue':'Home_Team_Venue', 'Latitude':'Home_Team_Venue_Latitude', 'Longitude':"Home_Team_Venue_Longitude"})
+    matches = matches.merge(home_venue_info[['Home_Team_Venue', 'Home_Team_Venue_Latitude', 'Home_Team_Venue_Longitude']], how = 'left', on = 'Home_Team_Venue')
+
+    away_venue_info = venue_info.copy().rename(columns={'Venue':'Away_Team_Venue', 'Latitude':'Away_Team_Venue_Latitude', 'Longitude':"Away_Team_Venue_Longitude"})
+    matches = matches.merge(away_venue_info[['Away_Team_Venue', 'Away_Team_Venue_Latitude', 'Away_Team_Venue_Longitude']], how = 'left', on = 'Away_Team_Venue')
+    
+    return matches
+
+def create_home_flag(data):
+        
+    return np.where(data['Team'] == data['Home_Team'], 1, 0)
+
+def merge_match_summary_team_stats(matches, team_stats):
+    
+    return matches.merge(team_stats, how = 'left', on = ['Match_ID', 'Home_Team', 'Away_Team'])
+
+def filter_draws(data):
+    return data[data['Margin'] != 0]
+
+def outlier_eliminator(df):
+    # Eliminate Essendon 2016 games
+    essendon_filter_criteria = ~(((df['Home_Team'] == 'Essendon') & (df['Year'] == 2016)) | ((df['Away_Team'] == 'Essendon') & (df['Year'] == 2016)))
+    df = df[essendon_filter_criteria].reset_index(drop=True)
+
+    return df
+
+def min_year_filter_data(data, year):
+    return data[data['Year'] >= int(year)]
+
+def sort_match_stats(match_stats):
+    
+    return match_stats.sort_values(by = ['Date', 'Match_ID', 'Home_Team', 'Away_Team'])
+
+def get_match(match_stats, match_id):
+    return match_stats[match_stats['Match_ID'] == match_id]
