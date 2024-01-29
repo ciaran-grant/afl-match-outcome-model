@@ -9,17 +9,10 @@ authors = [
 ]
 requires-python = ">=3.11"
 
-dependencies = [
-    "pandas",
-    "numpy==1.24.0",
-    "joblib",
-    "matplotlib",
-    "seaborn",
-    "xgboost",
-    "optuna",
-    "betacal",
-    "shap",
-]
+dynamic = ["dependencies"]
+
+[tool.setuptools.dynamic]
+dependencies = {file = ["requirements.txt"]}
 
 [project.urls]
 "Repository" = "https://github.com/ciaran-grant/afl-match-outcome-model"
