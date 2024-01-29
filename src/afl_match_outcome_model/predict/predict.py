@@ -6,12 +6,12 @@ from afl_match_outcome_model.data_preparation.preprocessing import get_match
 # Specify Match_ID to predict
 match_id = "AFL_2023_F4_Collingwood_Brisbane"
 
-def predict(match_id):
+def predict_outcome(match_id):
     
     # Specify model to load
-    model_file_path = ".../model_outputs/match_outcome_xgb.joblib"
+    model_file_path = "/Users/ciaran/Documents/Projects/AFL/git-repositories/afl-match-outcome-model/model_outputs/match_outcome_xgb.joblib"
     super_xgb = joblib.load(model_file_path)
-    model_features = super_xgb.xgb_model.feature_names
+    model_features = super_xgb.xgb_model.get_booster().feature_names    
     
     # Load data (alternative to loading raw data and then creating features would be to upload data with features already created)
     matches = load_matches(dataset_name = 'AFLTables_Match_Summary')
