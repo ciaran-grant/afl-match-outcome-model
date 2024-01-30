@@ -9,7 +9,7 @@ match_id = "AFL_2023_F4_Collingwood_Brisbane"
 def predict_outcome(match_id):
     
     # Specify model to load
-    model_file_path = "/Users/ciaran/Documents/Projects/AFL/git-repositories/afl-match-outcome-model/model_outputs/match_outcome_xgb.joblib"
+    model_file_path = "model_outputs/match_outcome_xgb.joblib"
     super_xgb = joblib.load(model_file_path)
     model_features = super_xgb.xgb_model.get_booster().feature_names    
     
