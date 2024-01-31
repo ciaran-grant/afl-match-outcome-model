@@ -1,0 +1,26 @@
+version: "3"
+
+services:
+  matchoutcome:
+    image: ciarangrant/matchoutcome:v20240130
+    container_name: matchoutcome
+    restart: unless-stopped
+    ports:
+      - 8000:8000
+    volumes:
+      - /opt/AFL_Data:/AFL_Data
+    labels:
+      - traefik.enable=true
+      - traefik.http.services.matchoutcome.loadbalancer.server.port=8000
+      
+      - traefik.http.routers.matchoutcome.entrypoints=websecure
+      - traefik.http.routers.matchoutcome.rule=Host(`ciarangrant.davidgthomas.com`)
+      - traefik.http.routers.matchoutcome.tls=true
+      - traefik.http.routers.matchoutcome.service=matchoutcome
+      - traefik.http.routers.matchoutcome.middlewares=authelia@docker
+    networks:
+      - traefik_webnet
+
+networks:
+  traefik_webnet:
+    external: true

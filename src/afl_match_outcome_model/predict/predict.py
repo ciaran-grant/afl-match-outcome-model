@@ -24,5 +24,7 @@ def predict_outcome(match_id):
 
     # Get correct row
     data = get_match(match_stats, match_id)
+        
+    del matches, player_stats, venue_info, home_info, away_info, match_stats 
 
     return super_xgb.predict_proba(data[model_features])
