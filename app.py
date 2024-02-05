@@ -1,3 +1,6 @@
+import os
+print(os.environ)
+
 import joblib
 from afl_match_outcome_model.predict.predict import predict_outcome
 from flask import Flask, request, jsonify
