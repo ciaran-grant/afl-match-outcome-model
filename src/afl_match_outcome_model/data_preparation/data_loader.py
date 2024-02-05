@@ -15,3 +15,6 @@ def load_team_info(dataset_name = 'Team_Info'):
     away_info = load_data(Dataset_Name=dataset_name).rename(columns = {'Team':'Away_Team', 'Home_Ground_1':'Away_Team_Venue'})
 
     return home_info, away_info
+
+def load_match_outcome_features(dataset_name = 'CG_Match_Outcome_Features', match_id = None):
+    return load_data(Dataset_Name=dataset_name, ID=match_id)
