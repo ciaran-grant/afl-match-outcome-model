@@ -1,4 +1,4 @@
-from afl_match_outcome_model.data_preparation.data_loader import load_match_outcome_features
+from AFLPy.AFLData_Client import load_data
 
 def predict_outcome(match_id, model):
     
@@ -6,6 +6,6 @@ def predict_outcome(match_id, model):
     model_features = model.xgb_model.get_booster().feature_names    
     
     # Load features
-    match_stats = load_match_outcome_features(dataset_name='CG_Match_Outcome_Features', match_id=match_id)
+    match_stats = load_data(dataset_name='CG_Match_Outcome_Features', match_id=match_id)
 
     return model.predict_proba(match_stats[model_features])
