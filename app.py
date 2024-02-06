@@ -13,12 +13,12 @@ def predict():
     model_file_path = "model_outputs/match_outcome_xgb.joblib"
     super_xgb = joblib.load(model_file_path)
     
-    match_id_list = request.json['Match_ID']
-    result = {}
-    for match_id in match_id_list:
-        probas = predict_outcome(match_id, super_xgb)
-        result[match_id] = probas
-    return jsonify(result)
+    data = request.json
+    match_id = data['Match_ID']
+    probas = predict_outcome(match_id, super_xgb).tolist()
+    
+    return {'prediction':probas}
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8000, debug=True)
