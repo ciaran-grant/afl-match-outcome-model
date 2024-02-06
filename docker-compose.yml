@@ -2,7 +2,7 @@ version: "3"
 
 services:
   matchoutcome:
-    image: ciarangrant/matchoutcome:v20240130
+    image: ciarangrant/matchoutcome:v20240205
     container_name: matchoutcome
     restart: unless-stopped
     ports:
