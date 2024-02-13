@@ -14,7 +14,7 @@ services:
       - traefik.http.services.matchoutcome.loadbalancer.server.port=8000
       
       - traefik.http.routers.matchoutcome.entrypoints=websecure
-      - traefik.http.routers.matchoutcome.rule=Host(`ciarangrant.davidgthomas.com`)
+      - traefik.http.routers.matchoutcome.rule=Host(`ciarandgrant.com`)
       - traefik.http.routers.matchoutcome.tls=true
       - traefik.http.routers.matchoutcome.service=matchoutcome
       - traefik.http.routers.matchoutcome.middlewares=authelia@docker
