@@ -1,24 +1,30 @@
-import os
-print(os.environ)
-
 import joblib
-from afl_match_outcome_model.predict.predict import predict_outcome
-from flask import Flask, request, jsonify
+from flask import Flask
+from AFLPy.AFLData_Client import load_data, upload_data
 
 app = Flask(__name__)
 
-@app.route("/model/outcome/predict", methods=["POST"])
-def predict():
+def load_model():
     
     model_file_path = "model_outputs/match_outcome_xgb.joblib"
-    super_xgb = joblib.load(model_file_path)
-    
-    data = request.json
-    match_id = data['Match_ID']
-    probas = predict_outcome(match_id, super_xgb).tolist()
-    
-    return {'prediction':probas}
+    return joblib.load(model_file_path)
 
+@app.route("/model/outcome/predict", methods=["GET", "POST"])
+def predict(ID = None):
+    
+    model = load_model()
+    model_features = model.xgb_model.get_booster().feature_names
+    
+    data = load_data(Dataset_Name='CG_Match_Outcome_Features', ID = ID)     
+    
+    data['Home_Win_Prob'] = model.predict_proba(data[model_features])[:, 1]
+    data['Away_Win_Prob'] = 1 - data['Home_Win_Prob']
+    
+    data = data[['Match_ID', 'Home_Win_Prob', 'Away_Win_Prob'] + model_features]
+    
+    upload_data(Dataset_Name="CG_Match_Outcome", Dataset=data, overwrite=True)
+    
+    return data
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8000, debug=False)
