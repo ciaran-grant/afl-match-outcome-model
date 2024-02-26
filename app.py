@@ -1,5 +1,5 @@
 import joblib
-from flask import Flask
+from flask import Flask, request
 from AFLPy.AFLData_Client import load_data, upload_data
 
 app = Flask(__name__)
@@ -14,8 +14,8 @@ def predict(ID = None):
     
     model = load_model()
     model_features = model.xgb_model.get_booster().feature_names
-    
-    data = load_data(Dataset_Name='CG_Match_Outcome_Features', ID = ID)     
+        
+    data = load_data(Dataset_Name='CG_Match_Outcome_Features', ID = request.json['ID'])     
     
     data['Home_Win_Prob'] = model.predict_proba(data[model_features])[:, 1]
     data['Away_Win_Prob'] = 1 - data['Home_Win_Prob']
@@ -24,7 +24,7 @@ def predict(ID = None):
     
     upload_data(Dataset_Name="CG_Match_Outcome", Dataset=data, overwrite=True)
     
-    return data
+    return data.to_json(orient='records')
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8000, debug=False)
