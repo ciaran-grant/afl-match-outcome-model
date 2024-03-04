@@ -1,4 +1,5 @@
 import geopy.distance
+import numpy as np
 
 def parse_score(score):
     """Parses a score string into goals, behinds, and total score.
@@ -26,10 +27,25 @@ def create_score_features(match_stats):
     """
     
     for team in ['Home', 'Away']:
-        match_stats[f'{team}_Score'], match_stats[f'{team}_Goals'], match_stats[f'{team}_Behinds'] = zip(*match_stats['Q4_Score'].apply(lambda x: parse_score(x.split(" - ")[0 if team == 'Home' else 1])))
+        match_stats[f'{team}_Score'], match_stats[f'{team}_Goals'], match_stats[f'{team}_Behinds'] = zip(*match_stats['Q4_Score'].apply(lambda x: (parse_score(x.split(" - ")[0 if team == 'Home' else 1]) if isinstance(x, str) else (np.nan, np.nan, np.nan))))
         match_stats[f'{team}_Scoring_Shots'] = match_stats[f'{team}_Goals'] + match_stats[f'{team}_Behinds']
         match_stats[f'{team}_Goal_Conversion'] = match_stats[f'{team}_Goals'] / match_stats[f'{team}_Scoring_Shots']
 
+    return match_stats
+
+def create_shot_features(match_stats):
+    """Creates expected margin features based on the home and away expected scores.
+
+    Args:
+        match_stats (DataFrame): Input dataframe with match statistics.
+
+    Returns:
+        DataFrame: Updated dataframe with additional margin features.
+    """
+
+    match_stats['Home_Scoring_Shots_Differential'] = match_stats['Home_Scoring_Shots'] - match_stats['Away_Scoring_Shots']
+    match_stats['Away_Scoring_Shots_Differential'] = -match_stats['Home_Scoring_Shots']
+    
     return match_stats
 
 def create_margin_features(match_stats):
@@ -44,6 +60,24 @@ def create_margin_features(match_stats):
 
     match_stats['Home_Margin'] = match_stats['Home_Score'] - match_stats['Away_Score']
     match_stats['Away_Margin'] = -match_stats['Home_Margin']
+    
+    return match_stats
+
+def create_expected_features(match_stats):
+    """Creates expected margin features based on the home and away expected scores.
+
+    Args:
+        match_stats (DataFrame): Input dataframe with match statistics.
+
+    Returns:
+        DataFrame: Updated dataframe with additional margin features.
+    """
+
+    match_stats['Home_xMargin'] = match_stats['Home_xScore'] - match_stats['Away_xScore']
+    match_stats['Away_xMargin'] = -match_stats['Home_xMargin']
+    
+    match_stats['Home_xVAEP_Margin'] = match_stats['Home_exp_vaep_value'] - match_stats['Away_exp_vaep_value']
+    match_stats['Away_xVAEP_Margin'] = -match_stats['Home_xVAEP_Margin']
     
     return match_stats
 

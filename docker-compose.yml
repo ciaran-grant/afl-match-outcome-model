@@ -2,7 +2,7 @@ version: "3"
 
 services:
   matchoutcome:
-    image: ciarangrant/matchoutcome:v20240226
+    image: ciarangrant/matchoutcome:v20240304
     volumes:
       - /opt/AFL_Data:/AFL_Data
     deploy:

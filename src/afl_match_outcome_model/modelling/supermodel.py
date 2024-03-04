@@ -5,7 +5,7 @@ from betacal import BetaCalibration
 
 class SuperModel:
     
-    def __init__(self, X_train, y_train, X_test, y_test, params):
+    def __init__(self, X_train, y_train, X_test = None, y_test = None, params=None):
         """ Model agnostic class that requries training data, test data and parameters.
 
         Args:
@@ -15,6 +15,8 @@ class SuperModel:
             y_test (Array): Test set response
             params (Dict): Model parameters
         """
+        if params is None:
+            params = {}
         self.X_train = X_train
         self.y_train = y_train
         self.X_test = X_test
@@ -44,7 +46,7 @@ class SuperXGBClassifier(SuperModel):
             Dict: XGBoost model hyperparameters
         """
         
-        xgb_params = {
+        return {
             'max_depth': self.params['max_depth'],
             'min_child_weight': self.params['min_child_weight'],
             'eta': self.params['eta'],
@@ -52,10 +54,8 @@ class SuperXGBClassifier(SuperModel):
             'lambda': self.params['lambda'],
             'alpha': self.params['alpha'],
             'subsample': self.params['subsample'],
-            'colsample_bytree': self.params['colsample_bytree']
+            'colsample_bytree': self.params['colsample_bytree'],
         }
-        
-        return xgb_params
     
     def fit(self):
                 
@@ -74,9 +74,12 @@ class SuperXGBClassifier(SuperModel):
                                          monotone_constraints = self.params['monotone_constraints']
                                          )
         
-        self.xgb_model = self.xgb_clf.fit(X = self.X_train,
-                                          y = self.y_train,
-                                          eval_set = [(self.X_train, self.y_train), (self.X_test, self.y_test)])
+        if self.X_test is not None:
+            self.xgb_model = self.xgb_clf.fit(X = self.X_train,
+                                            y = self.y_train,
+                                            eval_set = [(self.X_train, self.y_train), (self.X_test, self.y_test)])
+        else:
+            self.xgb_model = self.xgb_clf.fit(X = self.X_train, y = self.y_train)
     
     def calibrate(self):
         
@@ -106,7 +109,7 @@ class SuperXGBRegressor(SuperModel):
     
     def _get_xgb_hyperparameters(self):
         
-        xgb_params = {
+        return {
             'max_depth': self.params['max_depth'],
             'min_child_weight': self.params['min_child_weight'],
             'eta': self.params['eta'],
@@ -114,10 +117,8 @@ class SuperXGBRegressor(SuperModel):
             'lambda': self.params['lambda'],
             'alpha': self.params['alpha'],
             'subsample': self.params['subsample'],
-            'colsample_bytree': self.params['colsample_bytree']
+            'colsample_bytree': self.params['colsample_bytree'],
         }
-        
-        return xgb_params
     
     def fit(self):
                 
@@ -135,10 +136,12 @@ class SuperXGBRegressor(SuperModel):
                                         reg_lambda = self.params['lambda'],
                                         monotone_constraints = self.params['monotone_constraints']
                                         )
-        
-        self.xgb_model = self.xgb_reg.fit(X = self.X_train,
-                                          y = self.y_train,
-                                          eval_set = [(self.X_train, self.y_train), (self.X_test, self.y_test)])
+        if self.X_test is not None:
+            self.xgb_model = self.xgb_reg.fit(X = self.X_train,
+                                            y = self.y_train,
+                                            eval_set = [(self.X_train, self.y_train), (self.X_test, self.y_test)])
+        else:
+            self.xgb_model = self.xgb_reg.fit(X = self.X_train, y = self.y_train)
         
     def predict(self, X):
         
