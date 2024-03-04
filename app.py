@@ -6,7 +6,7 @@ app = Flask(__name__)
 
 def load_model():
     
-    model_file_path = "model_outputs/match_outcome_xgb_v8.joblib"
+    model_file_path = "model_outputs/match_outcome_xgb_v9.joblib"
     return joblib.load(model_file_path)
 
 @app.route("/model/outcome/predict", methods=["GET", "POST"])
@@ -22,7 +22,7 @@ def predict(ID = None):
     
     data = data[['Match_ID', 'Home_Win_Prob', 'Away_Win_Prob'] + model_features]
     
-    upload_data(Dataset_Name="CG_Match_Outcome", Dataset=data, overwrite=True)
+    upload_data(Dataset_Name="CG_Match_Outcome", Dataset=data, overwrite=True, update_if_identical=True)
     
     return data.to_json(orient='records')
 
