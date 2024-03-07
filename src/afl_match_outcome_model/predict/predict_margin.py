@@ -9,7 +9,7 @@ def load_margin_model():
 
 def get_margin_prediction(data, model, model_features):
     
-    data['Predicted_Margin'] = model.predict(data[model_features])
+    data['Predicted_Margin'] = model.predict(data[model_features]).astype(int)
 
     data = data[['Match_ID', 'Predicted_Margin'] + model_features]
     
