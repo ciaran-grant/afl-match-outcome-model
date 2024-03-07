@@ -11,6 +11,6 @@ def get_margin_prediction(data, model, model_features):
     
     data['Predicted_Margin'] = model.predict(data[model_features])
 
-    data = data[['Match_ID', 'Predicted_Team'] + model_features]
+    data = data[['Match_ID', 'Predicted_Margin'] + model_features]
     
     return data
