@@ -48,7 +48,7 @@ def create_tipping(ID = None):
     
     upload_data(Dataset_Name="CG_Tipping", Dataset=tipping_data, overwrite=True, update_if_identical=True)
     
-    return True
+    return tipping_data.to_json(orient='records')
 
 
 @app.route("/model/tipping", methods=["GET", "POST"])
@@ -57,7 +57,7 @@ def apply_tipping(ID = None):
     data = load_data(Dataset_Name="CG_Tipping", ID = ID)
     submit_tips(data)
     
-    return True
+    return data.to_json(orient='records')
     
 
 if __name__ == "__main__":

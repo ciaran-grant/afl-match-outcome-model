@@ -9,9 +9,8 @@ def load_margin_model():
 
 def get_margin_prediction(data, model, model_features):
     
-    data['Home_Margin_Prediction'] = model.predict(data[model_features])
-    data['Predicted_Team'] = np.where(data['Home_Margin_Prediction'] > 0, data['Home_Team'], data['Away_Team'])
+    data['Predicted_Margin'] = model.predict(data[model_features])
 
-    data = data[['Match_ID', 'Home_Margin_Prediction', 'Predicted_Team'] + model_features]
+    data = data[['Match_ID', 'Predicted_Team'] + model_features]
     
     return data
