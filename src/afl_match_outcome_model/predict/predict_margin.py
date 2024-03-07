@@ -1,5 +1,4 @@
 import joblib
-import numpy as np
 
 def load_margin_model():
     
