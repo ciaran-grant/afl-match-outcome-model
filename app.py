@@ -42,7 +42,7 @@ def create_tipping(ID = None):
     outcome_data = load_data(Dataset_Name="CG_Match_Outcome", ID = request.json['ID'])
     outcome_data = outcome_data[['Match_ID', 'Predicted_Team']]
     margin_data = load_data(Dataset_Name="CG_Match_Margin", ID = request.json['ID'])
-    margin_data = outcome_data[['Match_ID', 'Predicted_Margin']]
+    margin_data = margin_data[['Match_ID', 'Predicted_Margin']]
     
     tipping_data = outcome_data.merge(margin_data, how = "inner", on = "Match_ID")
     
