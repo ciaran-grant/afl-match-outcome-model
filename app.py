@@ -1,6 +1,6 @@
 from flask import Flask, request
 from AFLPy.AFLData_Client import load_data, upload_data
-from AFLPy.AFLBetting import submit_tips, get_current_tips
+from AFLPy.AFLBetting import submit_tips
 from afl_match_outcome_model.predict.predict_outcome import load_outcome_model, get_outcome_prediction
 from afl_match_outcome_model.predict.predict_margin import load_margin_model, get_margin_prediction
 
@@ -58,9 +58,8 @@ def apply_tipping(ID = None):
     data = load_data(Dataset_Name="CG_Tipping", ID = request.json['ID'])
     submit_tips(data)
     
-    return get_current_tips(ID = request.json['ID']).to_json(orient='records')
+    return True
     
-
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8000, debug=False)
     
