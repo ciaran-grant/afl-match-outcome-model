@@ -1,6 +1,6 @@
 from flask import Flask, request
 from AFLPy.AFLData_Client import load_data, upload_data
-from AFLPy.AFLBetting import submit_tips
+from AFLPy.AFLBetting import submit_tips, get_current_tips
 from afl_match_outcome_model.predict.predict_outcome import load_outcome_model, get_outcome_prediction
 from afl_match_outcome_model.predict.predict_margin import load_margin_model, get_margin_prediction
 from afl_match_outcome_model.data_preparation import create_match_stats_enriched, create_player_stats_enriched
@@ -22,9 +22,11 @@ def create_match_stats(ID = None):
     
     match_stats = create_match_stats_enriched()
     
-    upload_data(Dataset_Name="Match_Stats_Enriched", Dataset=match_stats, overwrite=True, update_if_identical=True)
+    # upload_data(Dataset_Name="Match_Stats_Enriched", Dataset=match_stats, overwrite=True, update_if_identical=True)
     
     return match_stats.to_json(orient='records')
+    
+    # return [True]
 
 @app.route("/model/outcome/predict", methods=["GET", "POST"])
 def predict_outcome(ID = None):
@@ -78,7 +80,7 @@ def apply_tipping(ID = None):
     data = load_data(Dataset_Name="CG_Tipping", ID = request.json['ID'])
     submit_tips(data)
     
-    return data.to_json(orient='records')
+    return get_current_tips(ID = request.json['ID'])
     
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8000, debug=False)
