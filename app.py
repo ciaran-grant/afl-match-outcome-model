@@ -1,5 +1,5 @@
 from flask import Flask, request
-from AFLPy.AFLData_Client import load_data, upload_data
+from AFLPy.AFLData_Client import load_data, upload_data, lookup_round_id
 from AFLPy.AFLBetting import submit_tips, get_current_tips
 from afl_match_outcome_model.predict.predict_outcome import load_outcome_model, get_outcome_prediction
 from afl_match_outcome_model.predict.predict_margin import load_margin_model, get_margin_prediction
@@ -10,23 +10,12 @@ app = Flask(__name__)
 @app.route("/preprocess/playerstats", methods=["GET", "POST"])
 def create_player_stats(ID = None):
     
-    player_stats = create_player_stats_enriched()
-    
-    for _, season_player_stats in player_stats.groupby('Season'):
-        upload_data(season_player_stats, "Player_Stats_Enriched", overwrite=True, update_if_identical=True)
-    
-    return player_stats.to_json(orient='records')
+    return [ID]
 
 @app.route("/preprocess/matchstats", methods=["GET", "POST"])
 def create_match_stats(ID = None):
     
-    match_stats = create_match_stats_enriched()
-    
-    # upload_data(Dataset_Name="Match_Stats_Enriched", Dataset=match_stats, overwrite=True, update_if_identical=True)
-    
-    return match_stats.to_json(orient='records')
-    
-    # return [True]
+    return [ID]
 
 @app.route("/model/outcome/predict", methods=["GET", "POST"])
 def predict_outcome(ID = None):
@@ -41,7 +30,6 @@ def predict_outcome(ID = None):
     upload_data(Dataset_Name="CG_Match_Outcome", Dataset=data, overwrite=True, update_if_identical=True)
     
     return data.to_json(orient='records')
-
 
 @app.route("/model/margin/predict", methods=["GET", "POST"])
 def predict_margin(ID = None):
@@ -67,7 +55,7 @@ def create_tipping(ID = None):
     margin_data = margin_data[['Match_ID', 'Predicted_Margin']]
     
     tipping_data = outcome_data.merge(margin_data, how = "inner", on = "Match_ID")
-    tipping_data['Predicted_Margin'] = tipping_data['Predicted_Margin'].astype(int)
+    tipping_data['Predicted_Margin'] = abs(tipping_data['Predicted_Margin'].astype(int))
     
     upload_data(Dataset_Name="CG_Tipping", Dataset=tipping_data, overwrite=True, update_if_identical=True)
     
