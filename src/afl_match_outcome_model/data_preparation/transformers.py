@@ -283,6 +283,88 @@ class PastPerformanceTransformer(BaseEstimator, TransformerMixin):
             
         return home_away_data
     
+class SquadPerformanceTransformer(BaseEstimator, TransformerMixin):
+    def __init__(self, squads, expected_score, expected_vaep, target_cols, window_summarizer_kwargs = None) -> None:
+        super().__init__()
+        self.squads = squads
+        self.expected_score = expected_score
+        self.expected_vaep = expected_vaep
+        self.target_cols = target_cols
+        if window_summarizer_kwargs is None:
+            window_summarizer_kwargs = {}
+        self.window_summarizer_kwargs = window_summarizer_kwargs
+        self.window_summarizer = WindowSummarizer(**self.window_summarizer_kwargs, target_cols=self.target_cols)
+                
+    def fit(self, X, y=None):
+        
+        X_squads = self.aggregate_expected_squads()
+        X_squads = self.reset_squads_index(X_squads)
+        
+        self.window_summarizer.fit(X_squads[self.target_cols])
+        
+        return self
+    
+    def transform(self, X):
+        
+        X_squads = self.aggregate_expected_squads()
+        X_squads = self.reset_squads_index(X_squads)
+        
+        X_squads_transformed = self.window_summarizer.transform(X_squads[self.target_cols])
+        X_squads_transformed.columns = [f'Team_Squad_{x}' for x in X_squads_transformed]
+        X_squads_transformed[['Match_ID', 'Team']] = X_squads[['Match_ID', 'Team']]
+        X_squads_transformed = X_squads_transformed.reset_index().drop(columns = ['index'])
+    
+        X_squads_home_away = self.convert_squad_team_to_home_away(X_squads_transformed)
+    
+        return X.merge(X_squads_home_away, how = "left", on = ['Match_ID', 'Home_Team', 'Away_Team'])
+
+    def aggregate_expected_squads(self):
+        
+        player_expected_score = self.expected_score.groupby(['Match_ID', 'Team', 'Player']).sum()[['xScore']].reset_index()
+        player_expected_vaep = self.expected_vaep.groupby(['Match_ID', 'Team', 'Player']).sum()[['exp_vaep_value']].reset_index()
+
+        squads_xscore = self.squads.merge(player_expected_score, how = "left", on = ['Match_ID', 'Team', 'Player'])
+        expected_squads = squads_xscore.merge(player_expected_vaep, how = "left", on = ['Match_ID', 'Team', 'Player'])
+        
+        expected_squads[['xScore', 'exp_vaep_value']] = expected_squads[['xScore', 'exp_vaep_value']].fillna(0)
+        
+        return expected_squads
+    
+    @staticmethod
+    def reset_squads_index(expected_squads):
+        return pd.concat([expected_squads[expected_squads['Player'] == player].reset_index(drop=True).reset_index(drop = False).set_index(['Player', 'index']).sort_index() for player in list(expected_squads['Player'].unique())], axis=0)
+    
+    @staticmethod
+    def get_home_team_from_match_id(match_id):
+    
+        return re.sub(r"(?<=\w)([A-Z])", r" \1", match_id.split("_")[3])
+
+    @staticmethod
+    def get_away_team_from_match_id(match_id):
+        
+        return re.sub(r"(?<=\w)([A-Z])", r" \1", match_id.split("_")[4])
+
+    def convert_squad_team_to_home_away(self, X):
+        # sourcery skip: extract-duplicate-method
+        
+        team_squad_sums = X.groupby(['Match_ID', 'Team']).sum().reset_index()
+        
+        team_squad_sums['Home_Team'] = team_squad_sums['Match_ID'].apply(lambda match_id: self.get_home_team_from_match_id(match_id))
+        team_squad_sums['Away_Team'] = team_squad_sums['Match_ID'].apply(lambda match_id: self.get_away_team_from_match_id(match_id))
+
+        home_data = team_squad_sums[team_squad_sums['Team'] == team_squad_sums['Home_Team']]
+        home_data = home_data.drop(columns=['Team'])
+        home_data.columns = [x.replace("Team_", "Home_") for x in list(home_data)]
+
+        away_data = team_squad_sums[team_squad_sums['Team'] == team_squad_sums['Away_Team']]
+        away_data = away_data.drop(columns=['Team'])
+        away_data.columns = [x.replace("Team_", "Away_") for x in list(away_data)]
+
+        home_away_data = home_data.merge(away_data, how = "inner", on = ['Match_ID', 'Home_Team', 'Away_Team'])
+        home_away_data = home_away_data[['Match_ID', 'Home_Team', "Away_Team"] + [x for x in list(home_away_data) if x not in ['Match_ID', 'Home_Team', "Away_Team"]]]
+        
+        return home_away_data 
+    
 class HomeAwayDifferenceTransformer(BaseEstimator, TransformerMixin):
     def __init__(self, feature_list):
         self.feature_list = feature_list

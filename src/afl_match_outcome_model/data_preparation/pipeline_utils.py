@@ -42,18 +42,18 @@ score_kwargs = {
 team_performance_cols = ['Team_Win', 'Team_Score', 'Team_Margin', 'Team_xScore_sum', 'Team_xScore_sum_Margin', 'Team_exp_vaep_value_sum', 'Team_exp_vaep_value_sum_Margin']
 opp_performance_cols = ['Opponent_Score', 'Opponent_xScore_sum', 'Opponent_exp_vaep_value_sum']
 
-schedule_kwargs = {    
+player_kwargs = {
     "lag_feature": {
-        "mean": [[1, 5]],
-        "std": [[1, 5]],
+     ema5: [[1, 5]],
     }
 }
-schedule_cols = ['Opponent_ELO', 'Opponent_xELO']
+squad_performance_cols = ['xScore', 'exp_vaep_value']
 
 diff_feature_list = [
     'Distance_Travelled',
     'ELO','ELO_probs',
     'xELO', 'xELO_probs',
+    'Squad_xScore_ema5_1_5', 'Squad_exp_vaep_value_ema5_1_5',
     'For_Win_mean_1_5', 'For_Win_ema5_1_5', 'For_Win_ema20_1_20',
     'For_Score_mean_1_5', 'For_Score_ema5_1_5', 'For_Score_ema20_1_20',
     'For_Margin_mean_1_5', 'For_Margin_ema5_1_5', 'For_Margin_ema20_1_20',
@@ -69,6 +69,8 @@ modelling_features = [
     'ELO_probs_diff',
     'xELO_diff',
     'xELO_probs_diff',
+    'Squad_xScore_ema5_1_5_diff',
+    'Squad_exp_vaep_value_ema5_1_5_diff',
     'For_Win_mean_1_5_diff',
     'For_Win_ema5_1_5_diff',
     'For_Win_ema20_1_20_diff',
@@ -115,24 +117,5 @@ modelling_features = [
     'For_exp_vaep_value_sum_ema20_1_20_ratio',
     'For_exp_vaep_value_sum_Margin_mean_1_5_ratio',
     'For_exp_vaep_value_sum_Margin_ema5_1_5_ratio',
-    'For_exp_vaep_value_sum_Margin_ema20_1_20_ratio',
-    'Home_For_Win_lag_1',
-    'Home_For_Score_lag_1',
-    'Home_For_Margin_lag_1',
-    'Home_For_xScore_sum_lag_1',
-    'Home_For_xScore_sum_Margin_lag_1',
-    'Home_For_exp_vaep_value_sum_lag_1',
-    'Home_For_exp_vaep_value_sum_Margin_lag_1',
-    'Away_For_Win_lag_1',
-    'Away_For_Score_lag_1',
-    'Away_For_Margin_lag_1',
-    'Away_For_xScore_sum_lag_1',
-    'Away_For_xScore_sum_Margin_lag_1',
-    'Away_For_exp_vaep_value_sum_lag_1',
-    'Away_For_exp_vaep_value_sum_Margin_lag_1',
-    'Home_Against_Score_lag_1',
-    'Home_Against_xScore_sum_lag_1',
-    'Home_Against_exp_vaep_value_sum_lag_1',
-    'Away_Against_Score_lag_1',
-    'Away_Against_xScore_sum_lag_1',
-    'Away_Against_exp_vaep_value_sum_lag_1']
+    'For_exp_vaep_value_sum_Margin_ema20_1_20_ratio'
+    ]
