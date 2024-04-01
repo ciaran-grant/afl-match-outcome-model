@@ -1,10 +1,11 @@
+import numpy as np
 from flask import Flask, request
 from AFLPy.AFLData_Client import load_data, upload_data, lookup_round_id
 from AFLPy.AFLBetting import submit_tips, get_current_tips
 from afl_match_outcome_model.predict.predict_outcome import load_outcome_model, get_outcome_prediction
 from afl_match_outcome_model.predict.predict_margin import load_margin_model, get_margin_prediction
 from afl_match_outcome_model.data_preparation import create_match_stats_enriched, create_player_stats_enriched
-
+from afl_match_outcome_model.data_preparation.match_id_utils import get_home_team_from_match_id, get_away_team_from_match_id
 app = Flask(__name__)
 
 @app.route("/preprocess/playerstats", methods=["GET", "POST"])
@@ -48,13 +49,12 @@ def predict_margin(ID = None):
 @app.route("/model/createtipping", methods=["GET", "POST"])
 def create_tipping(ID = None):
     
-    # Call predict match outcome and margin
-    outcome_data = load_data(Dataset_Name="CG_Match_Outcome", ID = request.json['ID'])
-    outcome_data = outcome_data[['Match_ID', 'Predicted_Team']]
-    margin_data = load_data(Dataset_Name="CG_Match_Margin", ID = request.json['ID'])
-    margin_data = margin_data[['Match_ID', 'Predicted_Margin']]
-    
-    tipping_data = outcome_data.merge(margin_data, how = "inner", on = "Match_ID")
+    # Call predict match margin
+    tipping_data = load_data(Dataset_Name="CG_Match_Margin", ID = request.json['ID'])
+    tipping_data['Home_Team'] = tipping_data['Match_ID'].apply(lambda x: get_home_team_from_match_id(x))
+    tipping_data['Away_Team'] = tipping_data['Match_ID'].apply(lambda x: get_home_team_from_match_id(x))
+    tipping_data['Predicted_Team'] = np.where(tipping_data['Predicted_Margin'] > 0, tipping_data['Home_Team'], tipping_data['Away_Team'])
+    tipping_data = tipping_data[['Match_ID', 'Predicted_Team', 'Predicted_Margin']]
     tipping_data['Predicted_Margin'] = abs(tipping_data['Predicted_Margin'].astype(int))
     
     upload_data(Dataset_Name="CG_Tipping", Dataset=tipping_data, overwrite=True, update_if_identical=True)
