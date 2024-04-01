@@ -52,7 +52,7 @@ def create_tipping(ID = None):
     # Call predict match margin
     tipping_data = load_data(Dataset_Name="CG_Match_Margin", ID = request.json['ID'])
     tipping_data['Home_Team'] = tipping_data['Match_ID'].apply(lambda x: get_home_team_from_match_id(x))
-    tipping_data['Away_Team'] = tipping_data['Match_ID'].apply(lambda x: get_home_team_from_match_id(x))
+    tipping_data['Away_Team'] = tipping_data['Match_ID'].apply(lambda x: get_away_team_from_match_id(x))
     tipping_data['Predicted_Team'] = np.where(tipping_data['Predicted_Margin'] > 0, tipping_data['Home_Team'], tipping_data['Away_Team'])
     tipping_data = tipping_data[['Match_ID', 'Predicted_Team', 'Predicted_Margin']]
     tipping_data['Predicted_Margin'] = abs(tipping_data['Predicted_Margin'].astype(int))
