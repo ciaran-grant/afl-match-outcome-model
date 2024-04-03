@@ -5,7 +5,56 @@ import re
 from sklearn.base import BaseEstimator, TransformerMixin
 from sktime.transformations.series.summarize import WindowSummarizer
 
-
+class YearRoundTransformer(BaseEstimator, TransformerMixin):
+    def __init__(self) -> None:
+        super().__init__()
+        
+    def fit(self, X, y = None):
+        return self
+    
+    def transform(self, X):
+        
+        X_transformed = X.copy()
+        
+        X_transformed['Year'] = X_transformed['Match_ID'].apply(lambda x: int(x.split("_")[1]))
+        X_transformed['Round'] = X_transformed['Match_ID'].apply(lambda x: self.match_id_to_round_num(x))
+        X_transformed['YearRound'] = X_transformed.apply(lambda row: int(str(row['Year']) + str(row['Round'])), axis=1)
+        
+        return X_transformed
+    
+    @staticmethod
+    def match_id_to_round_num(match_id):
+    
+        finals_map = {
+            2021: {
+                'F1':24,
+                'F2':25,
+                'F3':26,
+                'F4':27
+            },
+            2022: {
+                'F1':24,
+                'F2':25,
+                'F3':26,
+                'F4':27
+            },
+            2023: {
+                'F1':25,
+                'F2':26,
+                'F3':27,
+                'F4':28
+            },
+            2024:{
+                'F1':25,
+                'F2':26,
+                'F3':27,
+                'F4':28
+            }
+        }
+        
+        year, round_id = int(match_id.split("_")[1]), match_id.split("_")[2]
+        return finals_map[year][round_id] if "F" in round_id else round_id
+    
 class ScoreTransformer(BaseEstimator, TransformerMixin):
     def __init__(self, score_col):
         self.score_col = score_col
@@ -45,17 +94,34 @@ class WinTransformer(BaseEstimator, TransformerMixin):
         return Xt
         
 class ELOTransformer(BaseEstimator, TransformerMixin):
-    def __init__(self, k_factor=32, iniitial_rating = 1500, expected = False):
+    def __init__(self, k_factor=32, initial_rating = 1500, expected = False):
         self.k_factor = k_factor
-        self.initial_rating = iniitial_rating
+        self.initial_rating = initial_rating
         self.expected = expected
                 
     def fit(self, X, y=None):
+        self.elo_dict = {team: self.initial_rating for team in X['Home_Team'].unique()}
+        elos, elo_probs = self._calculate_elo_ratings(X)
+        self.elos = elos
+        self.elo_probs = elo_probs
         return self
 
     def transform(self, X):
-        elos, elo_probs, _ = self._calculate_elo_ratings(X, self.k_factor)
-        return self._merge_elo_ratings(X, elos, elo_probs)
+        X_elos, X_elo_probs = {}, {}
+        for index, row in X.iterrows():
+            match_id = row['Match_ID']
+            if match_id in list(self.elos.keys()):
+                X_elos[match_id] = self.elos[match_id]
+                X_elo_probs[match_id] = self.elo_probs[match_id]
+            else:
+                home_team, away_team = self.get_home_team_from_match_id(match_id), self.get_away_team_from_match_id(match_id)
+                X_elos[match_id] = [self.elo_dict[home_team], self.elo_dict[away_team]]
+                
+                home_elo_probs = self._calculate_elo_probability(self.elo_dict[home_team], self.elo_dict[away_team])
+                X_elo_probs[match_id] = [home_elo_probs, 1-home_elo_probs]
+                
+        new_elo_df, new_elo_probs_df = self._convert_elo_dict_to_dataframe(X_elos, X_elo_probs)
+        return self._merge_elo_ratings(X, new_elo_df, new_elo_probs_df)
     
     def _calculate_elo_probability(self, home_team_elo, away_team_elo):
         return 1 / (1 + 10 ** ((away_team_elo - home_team_elo) / 400))
@@ -67,23 +133,22 @@ class ELOTransformer(BaseEstimator, TransformerMixin):
         new_away_team_elo = away_team_elo + self.k_factor * ((1 - score_diff) - (1 - prob_win_home))
         return new_home_team_elo, new_away_team_elo
 
-    def _calculate_elo_for_row(self, row, elo_dict):
+    def _calculate_elo_for_row(self, row):
         game_id, home_team, away_team = row['Match_ID'], row['Home_Team'], row['Away_Team']
         margin = row['Home_xScore_sum_Margin'] if self.expected else row['Margin']
-        home_team_elo, away_team_elo = elo_dict[home_team], elo_dict[away_team]
-        elo_dict[home_team], elo_dict[away_team] = self._calculate_elo(home_team_elo, away_team_elo, margin)
+        home_team_elo, away_team_elo = self.elo_dict[home_team], self.elo_dict[away_team]
+        self.elo_dict[home_team], self.elo_dict[away_team] = self._calculate_elo(home_team_elo, away_team_elo, margin)
         return game_id, [home_team_elo, away_team_elo], [self._calculate_elo_probability(home_team_elo, away_team_elo), 1 - self._calculate_elo_probability(home_team_elo, away_team_elo)]
 
-    def _calculate_elo_ratings(self, data, k_factor):
-        elo_dict = {team: self.initial_rating for team in data['Home_Team'].unique()}
+    def _calculate_elo_ratings(self, data):
         elos, elo_probs = {}, {}
 
         for _, row in data.iterrows():
-            game_id, elos_game, elo_probs_game = self._calculate_elo_for_row(row, elo_dict)
+            game_id, elos_game, elo_probs_game = self._calculate_elo_for_row(row)
             elos[game_id] = elos_game
             elo_probs[game_id] = elo_probs_game
 
-        return elos, elo_probs, elo_dict
+        return elos, elo_probs
 
     def _convert_elo_dict_to_dataframe(self, elos, elo_probs):
         elo_columns = ['Home_xELO', 'Away_xELO'] if self.expected else ['Home_ELO', 'Away_ELO']
@@ -91,14 +156,23 @@ class ELOTransformer(BaseEstimator, TransformerMixin):
         
         elo_df = pd.DataFrame.from_dict(elos, orient='index', columns=elo_columns).rename_axis('Match_ID').reset_index()
         elo_probs_df = pd.DataFrame.from_dict(elo_probs, orient='index', columns=elo_probs_columns).rename_axis('Match_ID').reset_index()
+        
         return elo_df, elo_probs_df
 
-    def _merge_elo_ratings(self, X, elos, elo_probs):
-        elo_df, elo_probs_df = self._convert_elo_dict_to_dataframe(elos, elo_probs)
+    def _merge_elo_ratings(self, X, elo_df, elo_probs_df):
         X = pd.merge(X, elo_df, how='left', on='Match_ID')
         X = pd.merge(X, elo_probs_df, how='left', on='Match_ID')
         return X
+    
+    @staticmethod
+    def get_home_team_from_match_id(match_id):
 
+        return re.sub(r"(?<=\w)([A-Z])", r" \1", match_id.split("_")[3])
+
+    @staticmethod
+    def get_away_team_from_match_id(match_id):
+        
+        return re.sub(r"(?<=\w)([A-Z])", r" \1", match_id.split("_")[4]) 
 
 class VenueInfoMerger(BaseEstimator, TransformerMixin):
     def __init__(self, venue_info, home_info, away_info):
@@ -139,7 +213,6 @@ class VenueInfoMerger(BaseEstimator, TransformerMixin):
         
         return X_home_away_venue
     
-
 class TeamStatsAggregator(BaseEstimator, TransformerMixin):
     def __init__(self, groupby_column='team', stat=None, column = None):
         if stat is None:
@@ -179,7 +252,6 @@ class TeamStatsAggregator(BaseEstimator, TransformerMixin):
         
         return re.sub(r"(?<=\w)([A-Z])", r" \1", match_id.split("_")[4])   
         
-
 class ExpectedMerger(BaseEstimator, TransformerMixin):
     def __init__(self, expected_score, expected_vaep):
         self.expected_score = expected_score
@@ -213,7 +285,6 @@ class PastPerformanceTransformer(BaseEstimator, TransformerMixin):
     def fit(self, X, y=None):
         
         X_team_opp = self.convert_home_away_to_team_opp(X)
-        
         self.window_summarizer.fit(X_team_opp[self.target_cols])
         
         return self
@@ -225,7 +296,7 @@ class PastPerformanceTransformer(BaseEstimator, TransformerMixin):
         X_team_opp_transformed['Match_ID'] = X_team_opp['Match_ID']
         X_home_away_transformed = self.convert_team_opp_to_home_away(X_team_opp_transformed)
     
-        return X.merge(X_home_away_transformed, how = "left", on = ['Match_ID', 'Home_Team', 'Away_Team'])
+        return X.merge(X_home_away_transformed, how = "left", on = ['Match_ID', 'YearRound', 'Home_Team', 'Away_Team'])
     
     @staticmethod
     def convert_home_away_to_team_opp_single_team(match_summary, team):
@@ -247,8 +318,8 @@ class PastPerformanceTransformer(BaseEstimator, TransformerMixin):
         )
         
     def convert_home_away_to_team_opp(self, match_summary):
-        team_opp_data_list = [self.convert_home_away_to_team_opp_single_team(match_summary, team) for team in list(match_summary['Home_Team'].unique())]
-        return pd.concat(team_opp_data_list, axis=0).reset_index(drop = False).set_index(['Team', 'index']).sort_index()
+        team_opp_data_list = [self.convert_home_away_to_team_opp_single_team(match_summary, team) for team in list(set(list(match_summary['Home_Team'].unique()) + list(match_summary['Away_Team'].unique())))]
+        return pd.concat(team_opp_data_list, axis=0).set_index(['Team', 'YearRound']).sort_index()
 
     @staticmethod
     def get_home_team_from_match_id(match_id):
@@ -262,7 +333,7 @@ class PastPerformanceTransformer(BaseEstimator, TransformerMixin):
 
     def convert_team_opp_to_home_away(self, team_opp_data):
         
-        team_opp_data = team_opp_data.reset_index().drop(columns = ['index']).sort_values(by = 'Match_ID')
+        team_opp_data = team_opp_data.reset_index(drop = False).sort_values(by = 'Match_ID')
         team_opp_data['Home_Team'] = team_opp_data['Match_ID'].apply(lambda match_id: self.get_home_team_from_match_id(match_id))
         team_opp_data['Away_Team'] = team_opp_data['Match_ID'].apply(lambda match_id: self.get_away_team_from_match_id(match_id))
         
@@ -278,11 +349,11 @@ class PastPerformanceTransformer(BaseEstimator, TransformerMixin):
             home_data.columns = [x.replace("Opponent_", "Home_Against_") for x in list(home_data)]
             away_data.columns = [x.replace("Opponent_", "Away_Against_") for x in list(away_data)]
         
-        home_away_data = home_data.merge(away_data, how = "inner", on = ['Match_ID', 'Home_Team', 'Away_Team'])
-        home_away_data = home_away_data[['Match_ID', 'Home_Team', "Away_Team"] + [x for x in list(home_away_data) if x not in ['Match_ID', 'Home_Team', "Away_Team"]]]
+        home_away_data = home_data.merge(away_data, how = "inner", on = ['Match_ID', 'YearRound', 'Home_Team', 'Away_Team'])
+        home_away_data = home_away_data[['Match_ID', 'YearRound', 'Home_Team', "Away_Team"] + [x for x in list(home_away_data) if x not in ['Match_ID', 'YearRound', 'Home_Team', "Away_Team"]]]
             
         return home_away_data
-    
+
 class SquadPerformanceTransformer(BaseEstimator, TransformerMixin):
     def __init__(self, squads, expected_score, expected_vaep, target_cols, window_summarizer_kwargs = None) -> None:
         super().__init__()
