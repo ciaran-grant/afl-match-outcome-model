@@ -172,11 +172,11 @@ class XGBCVHyperparameterTuner(XGBHyperparameterTuner, OptunaXGBParamGrid):
         param["num_class"] = self.num_class
 
         history = xgb.cv(param, dtrain, nfold=self.nfolds)
-        if self.error == "reg:squarederror":
+        if self.optuna_param_grid.error == "reg:squarederror":
             return history["test-rmse-mean"].values[-1]
-        if self.error == "binary:logistic":
+        if self.optuna_param_grid.error == "binary:logistic":
             return history["test-logloss-mean"].values[-1]
-        if self.error == "multi:softprob":
+        if self.optuna_param_grid.error == "multi:softprob":
             return history["test-logloss-mean"].values[-1]
 
 

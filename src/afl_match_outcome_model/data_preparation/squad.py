@@ -130,9 +130,6 @@ def get_squad_stats(matches, player_stats):
         'Goals_ewm10',
         'Player_Rating_Points_ewm10',
         'xScore_ewm10',
-        'xT_created_ewm10',
-        'vaep_value_ewm10',
-        'offensive_value_ewm10',
         'exp_vaep_value_ewm10',
         'exp_offensive_value_ewm10'
     ]

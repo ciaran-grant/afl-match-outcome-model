@@ -40,7 +40,7 @@ class ModelEvaluator():
                 
         # Plot actual vs. predicted values
         plt.scatter(self.actual, self.expected)
-        plt.plot([0, max(self.actual)], [0, max(self.actual)], 'r--')
+        plt.plot([min(self.actual), max(self.actual)], [min(self.actual), max(self.actual)], 'r--')
         plt.xlabel("Actual values")
         plt.ylabel("Predicted values")
         plt.show()

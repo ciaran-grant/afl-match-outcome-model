@@ -54,7 +54,28 @@ class YearRoundTransformer(BaseEstimator, TransformerMixin):
         
         year, round_id = int(match_id.split("_")[1]), match_id.split("_")[2]
         return finals_map[year][round_id] if "F" in round_id else round_id
+  
+class DaysRestTransformer(BaseEstimator, TransformerMixin):
+    def fit(self, X, y=None):
+        
+        unique_teams = list(set(list(X['Home_Team'].unique()) + list(X['Away_Team'].unique())))
+        self.latest_date = {}
+        for team in unique_teams:
+            team_data = X[(X['Home_Team'] == team) | (X['Away_Team'] == team)]
+            self.latest_date[team] = team_data['Date'].max()
+        
+        return self
     
+    def transform(self, X):
+    
+        Xt = X.copy()
+            
+        # From the last match date, how many days
+        Xt['Home_Days_Rest'] = Xt.apply(lambda row: (row["Date"] - self.latest_date[row['Home_Team']]).days, axis=1)
+        Xt['Away_Days_Rest'] = Xt.apply(lambda row: (row["Date"] - self.latest_date[row['Away_Team']]).days, axis=1)
+        
+        return Xt
+      
 class ScoreTransformer(BaseEstimator, TransformerMixin):
     def __init__(self, score_col):
         self.score_col = score_col

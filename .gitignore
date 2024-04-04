@@ -163,3 +163,5 @@ cython_debug/
 *.joblib
 requirements.txt
 data/raw/*.RDS
+*.ipynb
+notebooks/*.ipynb
