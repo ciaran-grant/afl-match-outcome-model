@@ -2,14 +2,12 @@ import joblib
 
 def load_margin_model():
     
-    model_file_path = "model_outputs/match_margin_xgb_v9.joblib"
+    model_file_path = "model_outputs/match_margin_xgb_v10.joblib"
     
     return joblib.load(model_file_path)
 
-def get_margin_prediction(data, model, model_features):
+def load_margin_preprocessor():
     
-    data['Predicted_Margin'] = model.predict(data[model_features]).astype(int)
-
-    data = data[['Match_ID', 'Predicted_Margin'] + model_features]
+    preproc_file_path = "model_outputs/match_margin_pipeline_v10.joblib"
     
-    return data
+    return joblib.load(preproc_file_path)

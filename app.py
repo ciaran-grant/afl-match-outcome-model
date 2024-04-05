@@ -1,10 +1,10 @@
 import numpy as np
+import pandas as pd
 from flask import Flask, request
-from AFLPy.AFLData_Client import load_data, upload_data, lookup_round_id
+from AFLPy.AFLData_Client import load_data, upload_data
 from AFLPy.AFLBetting import submit_tips, get_current_tips
 from afl_match_outcome_model.predict.predict_outcome import load_outcome_model, get_outcome_prediction
-from afl_match_outcome_model.predict.predict_margin import load_margin_model, get_margin_prediction
-from afl_match_outcome_model.data_preparation import create_match_stats_enriched, create_player_stats_enriched
+from afl_match_outcome_model.predict.predict_margin import load_margin_model, load_margin_preprocessor
 from afl_match_outcome_model.data_preparation.match_id_utils import get_home_team_from_match_id, get_away_team_from_match_id
 app = Flask(__name__)
 
@@ -32,16 +32,31 @@ def predict_outcome(ID = None):
     
     return data.to_json(orient='records')
 
+@app.route("/model/margin/preprocess", methods=["GET", "POST"])
+def preprocess_margin(ID = None):
+    
+    match_summary = load_data(Dataset_Name="AFL_API_Matches", ID = ID).sort_values(by = "Match_ID", ascending = True).reset_index(drop = True)
+
+    preproc = load_margin_preprocessor()
+    preprocessed_data = preproc.transform(match_summary)
+    preprocessed_data['Match_ID'] = match_summary['Match_ID']
+    preprocessed_data = preprocessed_data[['Match_ID'] + [x for x in list(preprocessed_data) if x != 'Match_ID']]
+    
+    upload_data(Dataset_Name="CG_Margin_Features", Dataset=preprocessed_data, overwrite=True, update_if_identical=True)
+
+    return preprocessed_data.to_json(orient='records')
+
 @app.route("/model/margin/predict", methods=["GET", "POST"])
 def predict_margin(ID = None):
     
+    data = load_data(Dataset_Name="CG_Margin_Features", ID = request.json['ID']).sort_values(by = "Match_ID", ascending = True).reset_index(drop = True)
+    
     model = load_margin_model()
     model_features = model.xgb_model.get_booster().feature_names
-        
-    data = load_data(Dataset_Name="Match_Stats_Enriched", ID = request.json['ID'])      
+    data[model_features] = data[model_features].apply(pd.to_numeric, axis=1)
 
-    data = get_margin_prediction(data, model, model_features)
-    
+    data['Predicted_Margin'] = model.predict(data[model_features])
+
     upload_data(Dataset_Name="CG_Match_Margin", Dataset=data, overwrite=True, update_if_identical=True)
     
     return data.to_json(orient='records')
