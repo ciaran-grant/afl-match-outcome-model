@@ -35,7 +35,7 @@ def predict_outcome(ID = None):
 @app.route("/model/margin/preprocess", methods=["GET", "POST"])
 def preprocess_margin(ID = None):
     
-    match_summary = load_data(Dataset_Name="AFL_API_Matches", ID = ID).sort_values(by = "Match_ID", ascending = True).reset_index(drop = True)
+    match_summary = load_data(Dataset_Name="AFL_API_Matches", ID = request.json['ID']).sort_values(by = "Match_ID", ascending = True).reset_index(drop = True)
 
     preproc = load_margin_preprocessor()
     preprocessed_data = preproc.transform(match_summary)
