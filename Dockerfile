@@ -9,7 +9,7 @@ RUN apt-get install -y git
 # Copy files in
 WORKDIR /app
 COPY /model_outputs/match_outcome_xgb_v9.joblib /app/model_outputs/match_outcome_xgb_v9.joblib
-COPY /model_outputs/match_margin_xgb_v9.joblib /app/model_outputs/match_margin_xgb_v9.joblib
+COPY /model_outputs/match_margin_xgb_v10.joblib /app/model_outputs/match_margin_xgb_v10.joblib
 
 COPY /src /app/src
 COPY app.py /app/app.py
