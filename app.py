@@ -30,6 +30,8 @@ def fit_preprocessor():
     features_pipeline = fitted_pipeline()
     
     joblib.dump(features_pipeline, "model_outputs/match_margin_pipeline_v10.joblib")
+    
+    return [True]
 
 @app.route("/model/margin/preprocess", methods=["GET", "POST"])
 def preprocess_margin(ID = None):
