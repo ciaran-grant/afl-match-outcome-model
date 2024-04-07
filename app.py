@@ -1,22 +1,14 @@
 import numpy as np
 import pandas as pd
+import joblib
 from flask import Flask, request
 from AFLPy.AFLData_Client import load_data, upload_data
 from AFLPy.AFLBetting import submit_tips, get_current_tips
 from afl_match_outcome_model.predict.predict_outcome import load_outcome_model, get_outcome_prediction
 from afl_match_outcome_model.predict.predict_margin import load_margin_model, load_margin_preprocessor
+from afl_match_outcome_model.data_preparation.preprocessor import fitted_pipeline
 from afl_match_outcome_model.data_preparation.match_id_utils import get_home_team_from_match_id, get_away_team_from_match_id
 app = Flask(__name__)
-
-@app.route("/preprocess/playerstats", methods=["GET", "POST"])
-def create_player_stats(ID = None):
-    
-    return [ID]
-
-@app.route("/preprocess/matchstats", methods=["GET", "POST"])
-def create_match_stats(ID = None):
-    
-    return [ID]
 
 @app.route("/model/outcome/predict", methods=["GET", "POST"])
 def predict_outcome(ID = None):
@@ -31,6 +23,13 @@ def predict_outcome(ID = None):
     upload_data(Dataset_Name="CG_Match_Outcome", Dataset=data, overwrite=True, update_if_identical=True)
     
     return data.to_json(orient='records')
+
+@app.route("/model/margin/fit", methods=["GET", "POST"])
+def fit_preprocessor():
+    
+    features_pipeline = fitted_pipeline()
+    
+    joblib.dump(features_pipeline, "model_outputs/match_margin_pipeline_v10.joblib")
 
 @app.route("/model/margin/preprocess", methods=["GET", "POST"])
 def preprocess_margin(ID = None):
