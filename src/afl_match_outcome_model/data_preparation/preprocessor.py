@@ -23,19 +23,19 @@ modelling_features = [
     'For_exp_vaep_value_sum_Margin_ema20_1_20_diff',
     ]
 
-def fitted_pipeline():
+def fitted_pipeline(ID = None):
     
-    match_summary = load_data(Dataset_Name="AFL_API_Matches", ID = ["AFL", "2022", '2023', '2024']).sort_values(by = "Match_ID", ascending = True)
+    match_summary = load_data(Dataset_Name="AFL_API_Matches", ID = ID).sort_values(by = "Match_ID", ascending = True)
     match_summary = match_summary[match_summary['Match_Status'] == "CONCLUDED"]
 
-    squads = load_data(Dataset_Name='AFL_API_Team_Positions', ID = ["AFL", "2022", '2023', '2024']).sort_values(by = "Match_ID", ascending = True)
+    squads = load_data(Dataset_Name='AFL_API_Team_Positions', ID = ID).sort_values(by = "Match_ID", ascending = True)
 
     venue = load_data(Dataset_Name='Venues')
     home_info = load_data(Dataset_Name='Team_Info').rename(columns={'Team': 'Home_Team', 'Home_Ground_1': 'Home_Team_Venue'})
     away_info = load_data(Dataset_Name='Team_Info').rename(columns={'Team': 'Away_Team', 'Home_Ground_1': 'Away_Team_Venue'})
 
-    expected_score = load_data(Dataset_Name="CG_Expected_Score", ID = ["AFL", "2022", '2023', '2024']).sort_values(by = "Match_ID", ascending = True)
-    expected_vaep = load_data(Dataset_Name="CG_Expected_VAEP", ID = ["AFL", "2022", '2023', '2024']).sort_values(by = "Match_ID", ascending = True)
+    expected_score = load_data(Dataset_Name="CG_Expected_Score", ID = ID).sort_values(by = "Match_ID", ascending = True)
+    expected_vaep = load_data(Dataset_Name="CG_Expected_VAEP", ID = ID).sort_values(by = "Match_ID", ascending = True)
         
     features_pipeline = Pipeline([
         ('yearround', YearRoundTransformer()),

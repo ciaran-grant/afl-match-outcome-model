@@ -25,9 +25,9 @@ def predict_outcome(ID = None):
     return data.to_json(orient='records')
 
 @app.route("/model/margin/fit", methods=["GET", "POST"])
-def fit_preprocessor():
+def fit_preprocessor(ID = None):
     
-    features_pipeline = fitted_pipeline()
+    features_pipeline = fitted_pipeline(ID = request.json['ID'])
     
     joblib.dump(features_pipeline, "model_outputs/match_margin_pipeline_v10.joblib")
     
