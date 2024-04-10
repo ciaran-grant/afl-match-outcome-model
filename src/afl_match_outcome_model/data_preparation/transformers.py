@@ -119,9 +119,21 @@ class ELOTransformer(BaseEstimator, TransformerMixin):
         self.k_factor = k_factor
         self.initial_rating = initial_rating
         self.expected = expected
+        
+    @staticmethod
+    def find_season_first_matches_by_year(data):
+
+        team_season_first_matches = {}
+        for team in list(data['Home_Team'].unique()):
+            team_matches = data[(data['Home_Team'] == team) | (data['Away_Team'] == team)]
+            team_matches['Team'] = team
+            team_season_first_matches[team] = team_matches.groupby('Year').first()['Round'].to_dict()
+            
+        return team_season_first_matches
                 
     def fit(self, X, y=None):
         self.elo_dict = {team: self.initial_rating for team in X['Home_Team'].unique()}
+        self.team_season_first_matches = self.find_season_first_matches_by_year(X)
         elos, elo_probs = self._calculate_elo_ratings(X)
         self.elos = elos
         self.elo_probs = elo_probs
@@ -155,9 +167,15 @@ class ELOTransformer(BaseEstimator, TransformerMixin):
         return new_home_team_elo, new_away_team_elo
 
     def _calculate_elo_for_row(self, row):
-        game_id, home_team, away_team = row['Match_ID'], row['Home_Team'], row['Away_Team']
+        game_id, year, round_num, home_team, away_team = row['Match_ID'], row['Year'], row['Round'], row['Home_Team'], row['Away_Team']
         margin = row['Home_xScore_sum_Margin'] if self.expected else row['Margin']
         home_team_elo, away_team_elo = self.elo_dict[home_team], self.elo_dict[away_team]
+        
+        if self.team_season_first_matches[home_team][year] == round_num:
+            home_team_elo = 0.5*1500 + home_team_elo*0.5 
+        if self.team_season_first_matches[away_team][year] == round_num:
+            away_team_elo = 0.5*1500 + away_team_elo*0.5 
+            
         self.elo_dict[home_team], self.elo_dict[away_team] = self._calculate_elo(home_team_elo, away_team_elo, margin)
         return game_id, [home_team_elo, away_team_elo], [self._calculate_elo_probability(home_team_elo, away_team_elo), 1 - self._calculate_elo_probability(home_team_elo, away_team_elo)]
 
@@ -386,11 +404,13 @@ class SquadPerformanceTransformer(BaseEstimator, TransformerMixin):
             window_summarizer_kwargs = {}
         self.window_summarizer_kwargs = window_summarizer_kwargs
         self.window_summarizer = WindowSummarizer(**self.window_summarizer_kwargs, target_cols=self.target_cols)
+        self.yearround = YearRoundTransformer()
                 
     def fit(self, X, y=None):
         
         X_squads = self.aggregate_expected_squads()
-        X_squads = self.reset_squads_index(X_squads)
+        X_squads = self.yearround.fit_transform(X_squads).set_index(['Player', 'YearRound']).sort_index()
+        X_squads = X_squads[~X_squads.index.duplicated()]
         
         self.window_summarizer.fit(X_squads[self.target_cols])
         
@@ -399,13 +419,14 @@ class SquadPerformanceTransformer(BaseEstimator, TransformerMixin):
     def transform(self, X):
         
         X_squads = self.aggregate_expected_squads()
-        X_squads = self.reset_squads_index(X_squads)
-        
+        X_squads = self.yearround.fit_transform(X_squads).set_index(['Player', 'YearRound']).sort_index()
+        X_squads = X_squads[~X_squads.index.duplicated()]
+
         X_squads_transformed = self.window_summarizer.transform(X_squads[self.target_cols])
         X_squads_transformed.columns = [f'Team_Squad_{x}' for x in X_squads_transformed]
-        X_squads_transformed[['Match_ID', 'Team']] = X_squads[['Match_ID', 'Team']]
-        X_squads_transformed = X_squads_transformed.reset_index().drop(columns = ['index'])
-    
+        X_squads_transformed = X_squads_transformed.merge(X_squads[['Match_ID', 'Team']], how = "left", left_index=True, right_index=True).reset_index(drop = False)
+        X_squads_transformed = X_squads_transformed.drop(columns=['YearRound'])
+        
         X_squads_home_away = self.convert_squad_team_to_home_away(X_squads_transformed)
     
         return X.merge(X_squads_home_away, how = "left", on = ['Match_ID', 'Home_Team', 'Away_Team'])
@@ -420,7 +441,7 @@ class SquadPerformanceTransformer(BaseEstimator, TransformerMixin):
         
         expected_squads[['xScore', 'exp_vaep_value']] = expected_squads[['xScore', 'exp_vaep_value']].fillna(0)
         
-        return expected_squads
+        return expected_squads[~expected_squads.index.duplicated()]
     
     @staticmethod
     def reset_squads_index(expected_squads):

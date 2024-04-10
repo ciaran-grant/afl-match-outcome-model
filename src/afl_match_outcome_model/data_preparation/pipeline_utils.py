@@ -9,6 +9,13 @@ def count_gt80(x):
 def count_gt100(x):
     return np.sum((x > 100)[::-1])
 
+def ema3(x):
+    alpha = 2 / (3 + 1)
+    weights = (1 - alpha) ** (np.arange(len(x)) + 1)
+    weights /= weights.sum()
+    ema = np.convolve(x, weights, mode='full')[:len(x)]
+    return ema[-1]
+
 def ema5(x):
     alpha = 2 / (5 + 1)
     weights = (1 - alpha) ** (np.arange(len(x)) + 1)
@@ -35,6 +42,7 @@ score_kwargs = {
         "lag": [1],
         "mean": [[1, 5]],
         "std": [[1, 5]],
+        ema3: [[1, 5]],
         ema5: [[1, 5]],
         ema20: [[1, 20]],
     }

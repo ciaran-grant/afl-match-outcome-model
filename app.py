@@ -6,7 +6,7 @@ from AFLPy.AFLData_Client import load_data, upload_data
 from AFLPy.AFLBetting import submit_tips, get_current_tips
 from afl_match_outcome_model.predict.predict_outcome import load_outcome_model, get_outcome_prediction
 from afl_match_outcome_model.predict.predict_margin import load_margin_model, load_margin_preprocessor
-from afl_match_outcome_model.data_preparation.preprocessor import fitted_pipeline
+from afl_match_outcome_model.data_preparation.update_preprocessor import update_fit_new_expected_data, update_fit_new_squads
 from afl_match_outcome_model.data_preparation.match_id_utils import get_home_team_from_match_id, get_away_team_from_match_id
 app = Flask(__name__)
 
@@ -24,12 +24,17 @@ def predict_outcome(ID = None):
     
     return data.to_json(orient='records')
 
-@app.route("/model/margin/fit", methods=["GET", "POST"])
-def fit_preprocessor(ID = None):
+@app.route("/model/margin/update_expected_data", methods=["GET", "POST"])
+def update_expected_data(ID = None):
     
-    features_pipeline = fitted_pipeline(ID = request.json['ID'])
+    update_fit_new_expected_data(ID = request.json['ID'])
     
-    joblib.dump(features_pipeline, "model_outputs/match_margin_pipeline_v10.joblib")
+    return [True]
+
+@app.route("/model/margin/update_squads", methods=["GET", "POST"])
+def update_squads(ID = None):
+    
+    update_fit_new_squads(ID = request.json['ID'])
     
     return [True]
 
