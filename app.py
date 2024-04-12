@@ -29,14 +29,14 @@ def update_expected_data(ID = None):
     
     update_fit_new_expected_data(ID = request.json['ID'])
     
-    return [True]
+    return "True"
 
 @app.route("/model/margin/update_squads", methods=["GET", "POST"])
 def update_squads(ID = None):
     
     update_fit_new_squads(ID = request.json['ID'])
     
-    return [True]
+    return "True"
 
 @app.route("/model/margin/preprocess", methods=["GET", "POST"])
 def preprocess_margin(ID = None):
@@ -94,3 +94,5 @@ def apply_tipping(ID = None):
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8000, debug=False)
     
+
+
