@@ -54,6 +54,6 @@ def fit_preprocessor(preproc):
     
 def save_margin_preprocessor(preproc):
     
-    preproc_file_path = "/model_outputs/match_margin_pipeline_v10.joblib"
+    preproc_file_path = "model_outputs/match_margin_pipeline_v10.joblib"
     
     return joblib.dump(preproc, preproc_file_path)
