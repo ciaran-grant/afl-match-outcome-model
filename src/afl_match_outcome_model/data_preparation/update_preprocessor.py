@@ -28,11 +28,15 @@ def update_preprocessor_expected_data(preproc, ID = None):
     
     new_expected_score = load_data(Dataset_Name="CG_Expected_Score", ID = ID).sort_values(by = "Match_ID", ascending = True).reset_index()
     preproc['expected'].expected_score = pd.concat([preproc['expected'].expected_score, new_expected_score], axis = 0)
+    preproc['expected'].expected_score = preproc['expected'].expected_score.drop_duplicates(subset=['Match_ID', 'Chain_Number', 'Order', 'Player'])
     preproc['squad'].expected_score = pd.concat([preproc['squad'].expected_score, new_expected_score], axis = 0)
+    preproc['squad'].expected_score = preproc['squad'].expected_score.drop_duplicates(subset=['Match_ID', 'Chain_Number', 'Order', 'Player'])
 
     new_expected_vaep = load_data(Dataset_Name="CG_Expected_VAEP", ID = ID).sort_values(by = "Match_ID", ascending = True).reset_index()
     preproc['expected'].expected_vaep = pd.concat([preproc['expected'].expected_vaep, new_expected_vaep], axis = 0)
+    preproc['expected'].expected_vaep = preproc['expected'].expected_vaep.drop_duplicates(subset=['Match_ID', 'Chain_Number', 'Order', 'Player'])
     preproc['squad'].expected_vaep = pd.concat([preproc['squad'].expected_vaep, new_expected_vaep], axis = 0)
+    preproc['squad'].expected_vaep = preproc['squad'].expected_vaep.drop_duplicates(subset=['Match_ID', 'Chain_Number', 'Order', 'Player'])
     
     return preproc
 
@@ -40,7 +44,8 @@ def update_preprocessor_new_squads(preproc, ID = None):
     
     new_squads = load_data(Dataset_Name='AFL_API_Team_Positions', ID = ID).sort_values(by = "Match_ID", ascending = True)
     preproc['squad'].squads = pd.concat([preproc['squad'].squads, new_squads], axis = 0)
-    
+    preproc['squad'].squads = preproc['squad'].squads.drop_duplicates(subset=['Match_ID', 'Player'])
+
     return preproc
 
 def fit_preprocessor(preproc):
