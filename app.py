@@ -7,6 +7,7 @@ from AFLPy.AFLBetting import submit_tips, get_current_tips
 from afl_match_outcome_model.predict.predict_outcome import load_outcome_model, get_outcome_prediction
 from afl_match_outcome_model.predict.predict_margin import load_margin_model, load_margin_preprocessor
 from afl_match_outcome_model.data_preparation.update_preprocessor import update_fit_new_expected_data, update_fit_new_squads
+from afl_match_outcome_model.data_preparation.update_preprocessor import check_latest_expected_score_preprocesor_matches, check_latest_expected_vaep_preprocesor_matches, check_latest_squad_preprocesor_matches
 from afl_match_outcome_model.data_preparation.match_id_utils import get_home_team_from_match_id, get_away_team_from_match_id
 app = Flask(__name__)
 
@@ -23,6 +24,24 @@ def predict_outcome(ID = None):
     upload_data(Dataset_Name="CG_Match_Outcome", Dataset=data, overwrite=True, update_if_identical=True)
     
     return data.to_json(orient='records')
+
+@app.route("/model/margin/check_expected_score", methods=["GET", "POST"])
+def check_expected_score_data():
+    
+    preproc = load_margin_preprocessor()
+    return check_latest_expected_score_preprocesor_matches(preproc)
+
+@app.route("/model/margin/check_expected_vaep", methods=["GET", "POST"])
+def check_expected_vaep_data():
+
+    preproc = load_margin_preprocessor()
+    return check_latest_expected_vaep_preprocesor_matches(preproc)
+
+@app.route("/model/margin/check_squad", methods=["GET", "POST"])
+def check_squad_data():
+    
+    preproc = load_margin_preprocessor()
+    return check_latest_squad_preprocesor_matches(preproc)
 
 @app.route("/model/margin/update_expected_data", methods=["GET", "POST"])
 def update_expected_data(ID = None):
@@ -76,7 +95,7 @@ def create_tipping(ID = None):
     tipping_data['Away_Team'] = tipping_data['Match_ID'].apply(lambda x: get_away_team_from_match_id(x))
     tipping_data['Predicted_Team'] = np.where(tipping_data['Predicted_Margin'] > 0, tipping_data['Home_Team'], tipping_data['Away_Team'])
     tipping_data = tipping_data[['Match_ID', 'Predicted_Team', 'Predicted_Margin']]
-    tipping_data['Predicted_Margin'] = abs(tipping_data['Predicted_Margin'].astype(int))
+    tipping_data['Predicted_Margin'] = abs(round(tipping_data['Predicted_Margin']).astype(int))
     
     upload_data(Dataset_Name="CG_Tipping", Dataset=tipping_data, overwrite=True, update_if_identical=True)
     

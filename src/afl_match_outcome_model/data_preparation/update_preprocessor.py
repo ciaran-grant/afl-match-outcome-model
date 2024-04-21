@@ -62,3 +62,13 @@ def save_margin_preprocessor(preproc):
     preproc_file_path = "model_outputs/match_margin_pipeline_v10.joblib"
     
     return joblib.dump(preproc, preproc_file_path)
+
+
+def check_latest_expected_score_preprocesor_matches(preproc):
+    return sorted(preproc['expected'].expected_score['Match_ID'].unique())[-10:]
+
+def check_latest_expected_vaep_preprocesor_matches(preproc):
+    return sorted(preproc['expected'].expected_vaep['Match_ID'].unique())[-10:]
+
+def check_latest_squad_preprocesor_matches(preproc):
+    return sorted(preproc['squad'].squads['Match_ID'].unique())[-10:]
