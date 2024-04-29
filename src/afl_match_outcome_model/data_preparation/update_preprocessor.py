@@ -27,7 +27,7 @@ def update_fit_new_squads(ID = None):
 def update_preprocessor_expected_data(preproc, ID = None):
     
     new_expected_score = load_data(Dataset_Name="CG_Expected_Score", ID = ID).sort_values(by = "Match_ID", ascending = True).reset_index()
-    new_expected_score = new_expected_score[['Match_ID', 'Chain_Number', 'Team', 'Player', 'xScore']]
+    new_expected_score = new_expected_score[['Match_ID', 'Chain_Number', 'Order', 'Team', 'Player', 'xScore']]
     preproc['expected'].expected_score = pd.concat([preproc['expected'].expected_score, new_expected_score], axis = 0)
     preproc['expected'].expected_score = preproc['expected'].expected_score.drop_duplicates(subset=['Match_ID', 'Chain_Number', 'Order', 'Player'])
     preproc['squad'].expected_score = pd.concat([preproc['squad'].expected_score, new_expected_score], axis = 0)
