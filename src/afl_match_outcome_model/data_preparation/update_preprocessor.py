@@ -27,12 +27,14 @@ def update_fit_new_squads(ID = None):
 def update_preprocessor_expected_data(preproc, ID = None):
     
     new_expected_score = load_data(Dataset_Name="CG_Expected_Score", ID = ID).sort_values(by = "Match_ID", ascending = True).reset_index()
+    new_expected_score = new_expected_score[['Match_ID', 'Chain_Number', 'Team', 'Player', 'xScore']]
     preproc['expected'].expected_score = pd.concat([preproc['expected'].expected_score, new_expected_score], axis = 0)
     preproc['expected'].expected_score = preproc['expected'].expected_score.drop_duplicates(subset=['Match_ID', 'Chain_Number', 'Order', 'Player'])
     preproc['squad'].expected_score = pd.concat([preproc['squad'].expected_score, new_expected_score], axis = 0)
     preproc['squad'].expected_score = preproc['squad'].expected_score.drop_duplicates(subset=['Match_ID', 'Chain_Number', 'Order', 'Player'])
 
     new_expected_vaep = load_data(Dataset_Name="CG_Expected_VAEP", ID = ID).sort_values(by = "Match_ID", ascending = True).reset_index()
+    new_expected_vaep = new_expected_vaep[['Match_ID', 'Chain_Number', 'Order', 'Team', 'Player', 'exp_vaep_value']]
     preproc['expected'].expected_vaep = pd.concat([preproc['expected'].expected_vaep, new_expected_vaep], axis = 0)
     preproc['expected'].expected_vaep = preproc['expected'].expected_vaep.drop_duplicates(subset=['Match_ID', 'Chain_Number', 'Order', 'Player'])
     preproc['squad'].expected_vaep = pd.concat([preproc['squad'].expected_vaep, new_expected_vaep], axis = 0)
