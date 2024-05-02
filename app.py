@@ -101,14 +101,13 @@ def create_tipping(ID = None):
     
     return tipping_data.to_json(orient='records')
 
-
 @app.route("/model/tipping", methods=["GET", "POST"])
 def apply_tipping(ID = None):
     
     data = load_data(Dataset_Name="CG_Tipping", ID = request.json['ID'])
     submit_tips(data)
     
-    return get_current_tips(ID = request.json['ID'])
+    return get_current_tips(ID = request.json['ID']).to_json(orient='records')
     
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8000, debug=False)

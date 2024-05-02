@@ -17,6 +17,9 @@ services:
         - traefik.http.routers.matchoutcome.middlewares=authelia@docker
       restart_policy:
         condition: on-failure
+      placement:
+        constraints:
+          - node.role == worker
     networks:
       - Traefik_overlay
 
