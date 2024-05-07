@@ -4,6 +4,7 @@ import joblib
 from flask import Flask, request
 from AFLPy.AFLData_Client import load_data, upload_data
 from AFLPy.AFLBetting import submit_tips, get_current_tips
+from AFLPy.ntfy import push_notification
 from afl_match_outcome_model.predict.predict_outcome import load_outcome_model, get_outcome_prediction
 from afl_match_outcome_model.predict.predict_margin import load_margin_model, load_margin_preprocessor
 from afl_match_outcome_model.data_preparation.update_preprocessor import update_fit_new_expected_data, update_fit_new_squads
@@ -69,6 +70,8 @@ def preprocess_margin(ID = None):
     
     upload_data(Dataset_Name="CG_Margin_Features", Dataset=preprocessed_data, overwrite=True, update_if_identical=True)
 
+    push_notification("Margin Prediction Pre Processed", ", ".join(ID))
+
     return preprocessed_data.to_json(orient='records')
 
 @app.route("/model/margin/predict", methods=["GET", "POST"])
@@ -83,6 +86,8 @@ def predict_margin(ID = None):
     data['Predicted_Margin'] = model.predict(data[model_features])
 
     upload_data(Dataset_Name="CG_Match_Margin", Dataset=data, overwrite=True, update_if_identical=True)
+    
+    push_notification("Match Predictions", ", ".join([mid + ": " + str(round(margin)) for mid, margin in zip(data["Match_ID"], data["Predicted_Margin"])]))
     
     return data.to_json(orient='records')
 
@@ -105,9 +110,12 @@ def create_tipping(ID = None):
 def apply_tipping(ID = None):
     
     data = load_data(Dataset_Name="CG_Tipping", ID = request.json['ID'])
+    
     submit_tips(data)
     
-    return get_current_tips(ID = request.json['ID']).to_json(orient='records')
+    push_notification("Tips Submitted", ", ".join([mid + ": " + team + " by " + str(round(margin)) for mid, team, margin in zip(data["Match_ID"], data["Predicted_Team"], data["Predicted_Margin"])]))
+
+    return True
     
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8000, debug=False)
