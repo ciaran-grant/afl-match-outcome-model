@@ -49,14 +49,19 @@ def update_expected_data(ID = None):
     
     update_fit_new_expected_data(ID = request.json['ID'])
     
-    return "True"
+    data = pd.DataFrame(request.json['ID'], columns = ["Match_ID"])
+    upload_data(Dataset_Name="CG_Preprocessor_Expected_Updated", Dataset=data, overwrite=True, update_if_identical=True)
+
+    return data.to_json(orient='records')
 
 @app.route("/model/margin/update_squads", methods=["GET", "POST"])
 def update_squads(ID = None):
     
     update_fit_new_squads(ID = request.json['ID'])
     
-    return "True"
+    data = pd.DataFrame(request.json['ID'], columns = ["Match_ID"])
+    upload_data(Dataset_Name="CG_Preprocessor_Squad_Updated", Dataset=data, overwrite=True, update_if_identical=True)
+    return data.to_json(orient='records')
 
 @app.route("/model/margin/preprocess", methods=["GET", "POST"])
 def preprocess_margin(ID = None):
@@ -70,7 +75,7 @@ def preprocess_margin(ID = None):
     
     upload_data(Dataset_Name="CG_Margin_Features", Dataset=preprocessed_data, overwrite=True, update_if_identical=True)
 
-    push_notification("Margin Prediction Pre Processed", ", ".join(ID))
+    push_notification("Margin Prediction Pre Processed", ", ".join([match_id for match_id in list(preprocessed_data['Match_ID'])]))
 
     return preprocessed_data.to_json(orient='records')
 
@@ -115,7 +120,7 @@ def apply_tipping(ID = None):
     
     push_notification("Tips Submitted", ", ".join([mid + ": " + team + " by " + str(round(margin)) for mid, team, margin in zip(data["Match_ID"], data["Predicted_Team"], data["Predicted_Margin"])]))
 
-    return True
+    return ["Tips Submitted", ", ".join([mid + ": " + team + " by " + str(round(margin)) for mid, team, margin in zip(data["Match_ID"], data["Predicted_Team"], data["Predicted_Margin"])])]
     
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8000, debug=False)
