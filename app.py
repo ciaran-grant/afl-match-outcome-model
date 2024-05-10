@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-import joblib
+import warnings
 from flask import Flask, request
 from AFLPy.AFLData_Client import load_data, upload_data
 from AFLPy.AFLBetting import submit_tips, get_current_tips
@@ -10,6 +10,9 @@ from afl_match_outcome_model.predict.predict_margin import load_margin_model, lo
 from afl_match_outcome_model.data_preparation.update_preprocessor import update_fit_new_expected_data, update_fit_new_squads
 from afl_match_outcome_model.data_preparation.update_preprocessor import check_latest_expected_score_preprocesor_matches, check_latest_expected_vaep_preprocesor_matches, check_latest_squad_preprocesor_matches
 from afl_match_outcome_model.data_preparation.match_id_utils import get_home_team_from_match_id, get_away_team_from_match_id
+
+warnings.filterwarnings("ignore")
+
 app = Flask(__name__)
 
 @app.route("/model/outcome/predict", methods=["GET", "POST"])
