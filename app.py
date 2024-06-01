@@ -78,7 +78,7 @@ def predict_outcome(ID = None):
     model_features = model.xgb_model.get_booster().feature_names
     data[model_features] = data[model_features].apply(pd.to_numeric, axis=1)
 
-    data['Predicted_Outcome'] = model.predict(data[model_features])
+    data['Predicted_Outcome'] = model.predict_proba(data[model_features])[:, 1]
 
     upload_data(Dataset_Name="CG_Match_Outcome", Dataset=data, overwrite=True, update_if_identical=True)
     
