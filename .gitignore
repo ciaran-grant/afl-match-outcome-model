@@ -167,3 +167,6 @@ data/raw/*.RDS
 notebooks/*.ipynb
 
 *.ttf
+*.png
+*.mplstyle
+*.txt
