@@ -2,9 +2,29 @@ import pandas as pd
 import joblib
 from AFLPy.AFLData_Client import load_data
 from afl_match_outcome_model.predict.predict_margin import load_margin_preprocessor
+from afl_match_outcome_model.predict.predict_outcome import load_outcome_preprocessor
 
+def update_fit_outcome_new_expected_data(ID = None):
+    
+    preproc = load_outcome_preprocessor()
+    preproc = update_preprocessor_expected_data(preproc, ID = ID)
+    preproc = fit_preprocessor(preproc)
+    
+    save_margin_preprocessor(preproc)
+    
+    return preproc
 
-def update_fit_new_expected_data(ID = None):
+def update_fit_outcome_new_squads(ID = None):
+    
+    preproc = load_outcome_preprocessor()
+    preproc = update_preprocessor_new_squads(preproc, ID = ID)
+    preproc = fit_preprocessor(preproc)
+    
+    save_margin_preprocessor(preproc)
+    
+    return preproc
+
+def update_fit_margin_new_expected_data(ID = None):
     
     preproc = load_margin_preprocessor()
     preproc = update_preprocessor_expected_data(preproc, ID = ID)
@@ -12,9 +32,9 @@ def update_fit_new_expected_data(ID = None):
     
     save_margin_preprocessor(preproc)
     
-    return [True]
+    return preproc
 
-def update_fit_new_squads(ID = None):
+def update_fit_margin_new_squads(ID = None):
     
     preproc = load_margin_preprocessor()
     preproc = update_preprocessor_new_squads(preproc, ID = ID)
@@ -22,7 +42,7 @@ def update_fit_new_squads(ID = None):
     
     save_margin_preprocessor(preproc)
     
-    return [True]
+    return preproc
 
 def update_preprocessor_expected_data(preproc, ID = None):
     

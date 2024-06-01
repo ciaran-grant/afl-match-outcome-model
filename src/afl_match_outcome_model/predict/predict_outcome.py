@@ -3,7 +3,7 @@ import numpy as np
 
 def load_outcome_model():
     
-    model_file_path = "model_outputs/match_outcome_xgb_v9.joblib"
+    model_file_path = "model_outputs/match_outcome_xgb_v10.joblib"
     
     return joblib.load(model_file_path)
 
@@ -17,3 +17,9 @@ def get_outcome_prediction(data, model, model_features):
     data = data[['Match_ID', 'Home_Win_Prob', 'Away_Win_Prob', 'Predicted_Team'] + model_features]
     
     return data
+
+def load_outcome_preprocessor():
+    
+    preproc_file_path = "model_outputs/match_outcome_pipeline_v10.joblib"
+    
+    return joblib.load(preproc_file_path)
